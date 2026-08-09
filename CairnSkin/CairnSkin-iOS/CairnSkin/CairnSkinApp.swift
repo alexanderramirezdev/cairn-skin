@@ -66,20 +66,30 @@ struct CairnSkinApp: App {
             }
             .environment(store)
             .environment(appLock)
-            .task {
-                // Only prompt if the scene is actually active. On a cold
-                // launch scenePhase is .active by the time this runs; if
-                // the app was launched into the background for any reason,
-                // this correctly does nothing and the .active transition
-                // below picks it up instead.
-                if lockIsActive && !appLock.isUnlocked && scenePhase == .active {
+            // ".task(id:)" rather than ".task" — this is the fix for a
+            // stuck lock screen.
+            //
+            // A plain .task runs once, when the view appears. On a cold
+            // launch that can happen while the scene is still .inactive,
+            // so the "is it active yet?" guard rejected it and no prompt
+            // fired. .onChange didn't save it either: if the scene was
+            // already .active by the time the view existed, there's no
+            // CHANGE to observe, so nothing fired at all and the user sat
+            // on a spinner until they force-quit.
+            //
+            // .task(id:) runs on first appearance AND again every time
+            // the id changes, so cold launch and return-from-background
+            // both funnel through one path.
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
+
+                if lockIsActive && !appLock.isUnlocked && !appLock.hasPromptedSinceLock {
                     await appLock.authenticate()
                 } else if !lockIsActive {
-                    // Mark the session unlocked even though we skipped
-                    // authentication. Without this, saving the very first
-                    // photo would flip lockIsActive to true mid-session
-                    // and drop a lock screen on someone actively using
-                    // the app.
+                    // Nothing saved yet, so nothing to protect. Marking the
+                    // session unlocked here stops the first saved photo from
+                    // flipping lockIsActive mid-session and dropping a lock
+                    // screen on someone actively using the app.
                     appLock.isUnlocked = true
                 }
             }
@@ -104,17 +114,10 @@ struct CairnSkinApp: App {
                     showPrivacyCover = true
 
                 case .active:
+                    // Authentication is NOT triggered here — the
+                    // .task(id: scenePhase) above handles it, and doing it
+                    // in both places would race and double-prompt.
                     showPrivacyCover = false
-                    // THE ONLY place automatic authentication is triggered
-                    // on return. It must be here rather than in
-                    // LockScreenView's .task: that view appears the moment
-                    // lock() runs, which is during backgrounding, so a task
-                    // there fired Face ID on the way OUT of the app — it
-                    // failed, consumed the single auto-prompt, and left the
-                    // user stranded on an error when they came back.
-                    if lockIsActive && !appLock.isUnlocked && !appLock.hasPromptedSinceLock {
-                        Task { await appLock.authenticate() }
-                    }
 
                 case .background:
                     // A real exit. This is where re-authentication belongs.

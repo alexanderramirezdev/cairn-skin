@@ -10,9 +10,22 @@
 		5E7650673027F1C100242D13 /* CairnSkin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CairnSkin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5E3FB250302947E400B6CF3E /* Exceptions for "CairnSkin" folder in "CairnSkin" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"CairnSkin-iOS/CairnSkin/Views/CameraPicker 2.swift",
+			);
+			target = 5E7650663027F1C100242D13 /* CairnSkin */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E7650693027F1C100242D13 /* CairnSkin */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5E3FB250302947E400B6CF3E /* Exceptions for "CairnSkin" folder in "CairnSkin" target */,
+			);
 			path = CairnSkin;
 			sourceTree = "<group>";
 		};
@@ -21,8 +34,10 @@
 /* Begin PBXFrameworksBuildPhase section */
 		5E7650643027F1C100242D13 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -55,6 +70,8 @@
 				5E7650653027F1C100242D13 /* Resources */,
 			);
 			buildRules = (
+			);
+			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
 				5E7650693027F1C100242D13 /* CairnSkin */,
@@ -101,21 +118,25 @@
 /* Begin PBXResourcesBuildPhase section */
 		5E7650653027F1C100242D13 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		5E7650633027F1C100242D13 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
 			files = (
 			);
+			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		5E7650703027F1C200242D13 /* Debug configuration for PBXProject "CairnSkin" */ = {
+		5E7650703027F1C200242D13 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -179,7 +200,7 @@
 			};
 			name = Debug;
 		};
-		5E7650713027F1C200242D13 /* Release configuration for PBXProject "CairnSkin" */ = {
+		5E7650713027F1C200242D13 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -236,7 +257,7 @@
 			};
 			name = Release;
 		};
-		5E7650733027F1C200242D13 /* Debug configuration for PBXNativeTarget "CairnSkin" */ = {
+		5E7650733027F1C200242D13 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -255,7 +276,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -277,7 +298,7 @@
 			};
 			name = Debug;
 		};
-		5E7650743027F1C200242D13 /* Release configuration for PBXNativeTarget "CairnSkin" */ = {
+		5E7650743027F1C200242D13 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -296,7 +317,7 @@
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = "$(RECOMMENDED_IPHONEOS_DEPLOYMENT_TARGET)";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -324,21 +345,22 @@
 		5E7650623027F1C100242D13 /* Build configuration list for PBXProject "CairnSkin" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5E7650703027F1C200242D13 /* Debug configuration for PBXProject "CairnSkin" */,
-				5E7650713027F1C200242D13 /* Release configuration for PBXProject "CairnSkin" */,
+				5E7650703027F1C200242D13 /* Debug */,
+				5E7650713027F1C200242D13 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 		5E7650723027F1C200242D13 /* Build configuration list for PBXNativeTarget "CairnSkin" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				5E7650733027F1C200242D13 /* Debug configuration for PBXNativeTarget "CairnSkin" */,
-				5E7650743027F1C200242D13 /* Release configuration for PBXNativeTarget "CairnSkin" */,
+				5E7650733027F1C200242D13 /* Debug */,
+				5E7650743027F1C200242D13 /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
 	rootObject = 5E76505F3027F1C100242D13 /* Project object */;
-	validationLevel = 1;
 }

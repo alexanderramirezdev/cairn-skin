@@ -38,9 +38,19 @@ nonisolated enum ReportGenerator {
     private static let disclaimer = "Cairn Skin is a personal wellness tracking tool. It does not diagnose, screen for, or assess any medical condition. The percentages shown describe how visually similar two photographs are — they are not medical measurements, and they do not indicate whether anything has improved or worsened. Photo comparisons are affected by lighting, camera angle, and distance. Always consult a qualified healthcare provider about any health concern."
 
     /// Writes a PDF to a temporary file and returns its URL.
-    static func generate(for area: TrackingArea, store: TrackingStore) throws -> URL {
-        let entries = store.entries(in: area)   // oldest first
-        let baselinePrint = entries.first.flatMap { store.featurePrint(for: $0) }
+    ///
+    /// Takes the entries array and the archive rather than the store.
+    /// The store is main-actor isolated (it owns UI state), so reaching
+    /// into it from the background task that calls this would be a
+    /// concurrency violation. The caller gathers `entries` on the main
+    /// actor and passes the plain array down; PhotoArchive is safe to use
+    /// from anywhere.
+    static func generate(
+        area: TrackingArea,
+        entries: [TrackingEntry],
+        archive: PhotoArchive
+    ) throws -> URL {
+        let baselinePrint = entries.first.flatMap { archive.featurePrint(for: $0) }
 
         let format = UIGraphicsPDFRendererFormat()
         let renderer = UIGraphicsPDFRenderer(
@@ -75,7 +85,7 @@ nonisolated enum ReportGenerator {
                         entry,
                         index: index,
                         baselinePrint: baselinePrint,
-                        store: store,
+                        archive: archive,
                         at: y
                     )
                 }
@@ -148,7 +158,7 @@ nonisolated enum ReportGenerator {
         _ entry: TrackingEntry,
         index: Int,
         baselinePrint: VNFeaturePrintObservation?,
-        store: TrackingStore,
+        archive: PhotoArchive,
         at y: CGFloat
     ) -> CGFloat {
         let thumbSize: CGFloat = 130
@@ -157,7 +167,7 @@ nonisolated enum ReportGenerator {
         // JPEGs into a PDF is slow and memory-hungry, and the result is a
         // 130pt square either way. printImage() uses 800px — enough for a
         // clean print, a fraction of the cost of the original.
-        if let image = store.printImage(for: entry) {
+        if let image = archive.printImage(for: entry) {
             let rect = CGRect(x: margin, y: y, width: thumbSize, height: thumbSize)
             let path = UIBezierPath(roundedRect: rect, cornerRadius: 6)
             path.addClip()
@@ -180,7 +190,7 @@ nonisolated enum ReportGenerator {
         textY += 20
 
         if let baselinePrint,
-           let print = store.featurePrint(for: entry),
+           let print = archive.featurePrint(for: entry),
            index > 0 {
             let distance = (try? FeatureExtractor.distance(between: baselinePrint, and: print)) ?? 0
             let text: String

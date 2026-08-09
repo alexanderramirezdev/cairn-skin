@@ -190,9 +190,15 @@ struct TrendView: View {
     // MARK: - Data
 
     private func calculate() async {
+        // Gather everything the background task needs while still on the
+        // main actor: the entries array (a plain value type) and the
+        // archive (safe from any thread). The store itself never crosses
+        // the boundary, because it owns main-actor UI state.
         let entries = store.entries(in: area)   // oldest first
+        let archive = store.archive
+
         guard let baseline = entries.first,
-              let baselinePrint = store.featurePrint(for: baseline) else {
+              let baselinePrint = archive.featurePrint(for: baseline) else {
             isCalculating = false
             return
         }
@@ -205,7 +211,7 @@ struct TrendView: View {
         let computed: [ChangePoint] = await Task.detached(priority: .userInitiated) {
             var result: [ChangePoint] = []
             for entry in entries {
-                guard let print = store.featurePrint(for: entry) else { continue }
+                guard let print = archive.featurePrint(for: entry) else { continue }
                 let distance = (try? FeatureExtractor.distance(between: baselinePrint, and: print)) ?? 0
                 // Subtract the noise floor so ordinary capture variation
                 // sits at zero rather than looking like real change.

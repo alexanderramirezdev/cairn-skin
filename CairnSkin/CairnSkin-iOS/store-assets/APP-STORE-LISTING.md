@@ -114,11 +114,15 @@ Photos stay in the app's sandboxed container and are never transmitted, which do
 
 ## URLs
 
-Both required. GitHub Pages hosts them free, see PORTFOLIO-SETUP.md.
+Both required, and both are live:
 
-- **Privacy Policy URL:** required for all apps
-- **Support URL:** required, can be a simple page with a contact email
-- **Marketing URL:** optional
+- **Privacy Policy URL:** `https://ramirezlabs.app/cairnskin/privacy`
+- **Support URL:** `https://ramirezlabs.app/cairnskin/`
+- **Marketing URL:** `https://ramirezlabs.app` (optional)
+
+Support email for the App Information section: `support@ramirezlabs.app`
+
+These pages are served from the `ramirezlabs-site` repo via Cloudflare Pages. Editing the privacy policy means updating it in two places: `store-assets/PRIVACY-POLICY.md` here (the source of record) and `cairnskin/privacy.html` in the site repo.
 
 ---
 
@@ -152,19 +156,21 @@ The app makes no medical claims. It does not diagnose, screen for, or assess any
 No account is required. No data is collected or transmitted, all photos and comparison data remain in the app's local container.
 
 To test: create a tracking area, take two photos (any subject works), then tap the second photo to see the comparison.
+
+Contact: support@ramirezlabs.app
 ```
 
 ---
 
 ## Pre-submission checklist
 
-- [ ] Deployment target set to iOS 17.0
-- [ ] Mac and Apple Vision removed from Supported Destinations
+- [x] Deployment target set to iOS 17.0
+- [x] Mac and Apple Vision removed from Supported Destinations
 - [ ] All four Info.plist usage descriptions present (Camera, Motion, Face ID)
-- [ ] App icon set in Assets.xcassets
+- [x] App icon set in Assets.xcassets
 - [ ] Version and build numbers set
-- [ ] Privacy policy live at a public URL
-- [ ] Support page live at a public URL
+- [x] Privacy policy live at a public URL
+- [x] Support page live at a public URL
 - [ ] Screenshots captured at both required sizes
 - [ ] Tested on a physical device, not just the simulator
 - [ ] Debug tools confirmed absent from the Release build

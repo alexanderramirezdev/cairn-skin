@@ -34,6 +34,7 @@ diagnostic pathway later, and a future standalone iOS ClearChart app. Neither of
 | `Views/OnboardingView.swift` | Three-page first-launch introduction |
 | `Store/DebugDataGenerator.swift` | DEBUG-only bulk test data generator |
 | `Store/AppLock.swift` | Face ID / Touch ID gating, no account required |
+| `Store/PhotoArchive.swift` | All disk reading and writing, usable from any thread |
 | `Store/ReportGenerator.swift` | Builds the PDF photo log |
 | `Views/GuidedCaptureView.swift` | **The differentiator.** Live camera with a ghost overlay of your last photo plus real-time lighting/sharpness badges |
 | `Camera/CameraSessionController.swift` | Manages the live AVFoundation camera session and feeds frames to the analyzer |
@@ -192,6 +193,29 @@ Try 30 entries to see whether the trend view slows (it loads feature prints sequ
 - **`PRIVACY-POLICY.md`**, ready to host; the honest version is short because nothing leaves the device
 - **`APP-STORE-LISTING.md`**, name, subtitle, description, keywords, App Privacy answers, screenshot plan, and a note to App Review. All written to stay on the wellness side of the line; the keyword list deliberately excludes *mole, melanoma, dermatology, detect, scan*
 - **`PORTFOLIO-SETUP.md`**, GitHub setup, MIT licensing rationale, free GitHub Pages hosting for the two URLs App Store Connect requires, and notes on writing about the work
+
+## 6.8 Concurrency: why disk access is a separate type
+
+`TrackingStore` owns the areas and entries arrays that drive every screen, so it belongs on the main actor. But it originally also read photos and vectors off disk, which is stateless and perfectly safe from a background thread.
+
+That mix caused trouble as soon as real background work appeared. Trend calculation and PDF export both run in `Task.detached` (they were freezing the UI otherwise), and both kept colliding with main-actor isolation. Marking individual methods `nonisolated` looked like a fix but wasn't: those methods still reached into main-actor-isolated stored properties like the thumbnail cache, so the compiler was right to complain.
+
+`PhotoArchive` resolves it structurally. It holds no main-actor state, so it needs no annotations to be usable anywhere, and background tasks take it directly. The pattern at every call site is the same: gather what's needed on the main actor (a plain array of value types, plus the archive), then hand only those across the boundary. The store never crosses it.
+
+Worth remembering as a general rule: when concurrency annotations start piling up on individual members, the type is usually doing two jobs and wants splitting.
+
+## 6.9 Live URLs
+
+| What | Where |
+|---|---|
+| Studio site | `https://ramirezlabs.app` |
+| Support page | `https://ramirezlabs.app/cairnskin/` |
+| Privacy policy | `https://ramirezlabs.app/cairnskin/privacy` |
+| Support email | `support@ramirezlabs.app` |
+
+The support email and privacy policy are also linked from Settings inside the app, alongside the version and build number, which is the first thing worth knowing from a bug report.
+
+The privacy policy exists in two places: `store-assets/PRIVACY-POLICY.md` here is the source of record, and `cairnskin/privacy.html` in the `ramirezlabs-site` repo is what's actually served. Edit both when it changes.
 
 ## 7. Branding
 

@@ -20,6 +20,13 @@ struct SettingsView: View {
 
     @State private var confirmingDeleteAll = false
 
+    private var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+    private var buildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    }
+
     var body: some View {
         @Bindable var lock = appLock
 
@@ -50,6 +57,22 @@ struct SettingsView: View {
                 .accessibilityHint("Permanently deletes every tracking area and photo")
             } footer: {
                 Text("Permanently removes every tracking area, photo, and note from this device. This cannot be undone.")
+            }
+
+            Section {
+                Link(destination: URL(string: "mailto:support@ramirezlabs.app?subject=Cairn%20Skin%20Support")!) {
+                    Label("Contact Support", systemImage: "envelope")
+                }
+                Link(destination: URL(string: "https://ramirezlabs.app/cairnskin/privacy")!) {
+                    Label("Privacy Policy", systemImage: "hand.raised")
+                }
+            } header: {
+                Text("Support")
+            } footer: {
+                // Version and build come straight from the bundle, so this
+                // can't drift out of date. Worth including because it's the
+                // first thing you'll want to know from a bug report.
+                Text("Cairn Skin \(appVersion) (\(buildNumber))")
             }
 
             Section {

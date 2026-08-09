@@ -198,11 +198,23 @@ struct TimelineView: View {
 
     private func generateReport() {
         isGeneratingReport = true
-        // PDF rendering is synchronous and can take a moment with many
-        // photos, so push it off the main thread and hop back to publish.
+
+        // Snapshot what the background task needs BEFORE leaving the main
+        // actor. `entries` is a plain array of value types and `archive`
+        // is thread-safe; the store itself stays behind.
+        let entriesSnapshot = store.entries(in: area)
+        let archive = store.archive
+        let targetArea = currentArea
+
+        // PDF rendering is synchronous and slow with many photos, so it
+        // runs off the main thread.
         Task.detached(priority: .userInitiated) {
             do {
-                let url = try ReportGenerator.generate(for: area, store: store)
+                let url = try ReportGenerator.generate(
+                    area: targetArea,
+                    entries: entriesSnapshot,
+                    archive: archive
+                )
                 await MainActor.run {
                     isGeneratingReport = false
                     reportURL = url

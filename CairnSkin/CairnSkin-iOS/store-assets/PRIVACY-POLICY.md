@@ -13,7 +13,7 @@ Everything below is saved only in the app's private storage area on your device:
 - **Photos you take** in the app
 - **Notes** you attach to those photos
 - **Tracking area names** you create
-- **Image comparison data** — a numeric summary of each photo, generated on your device, used to compare photos to each other
+- **Image comparison data**, a numeric summary of each photo, generated on your device, used to compare photos to each other
 
 ## What Cairn Skin does not do
 
@@ -25,9 +25,9 @@ Everything below is saved only in the app's private storage area on your device:
 
 ## Permissions the app requests
 
-- **Camera** — to take tracking photos. Photos are saved only to the app's private storage.
-- **Motion & Fitness** — reads the gyroscope to tell you when the phone is steady enough for a clear photo. This data is used momentarily and never stored.
-- **Face ID / Touch ID** — to unlock the app. Biometric authentication is handled entirely by iOS; Cairn Skin never receives or stores your biometric data.
+- **Camera**, to take tracking photos. Photos are saved only to the app's private storage.
+- **Motion & Fitness**, reads the gyroscope to tell you when the phone is steady enough for a clear photo. This data is used momentarily and never stored.
+- **Face ID / Touch ID**, to unlock the app. Biometric authentication is handled entirely by iOS; Cairn Skin never receives or stores your biometric data.
 
 ## Photo analysis
 
@@ -35,7 +35,7 @@ Image comparison happens entirely on your device using Apple's Vision framework.
 
 ## Exporting a PDF
 
-Cairn Skin can generate a PDF of a tracking area on your device. The app does not send that file anywhere — after it is created, you choose what to do with it through the standard iOS share sheet. Once you share a PDF outside the app, this policy no longer governs it.
+Cairn Skin can generate a PDF of a tracking area on your device. The app does not send that file anywhere, after it is created, you choose what to do with it through the standard iOS share sheet. Once you share a PDF outside the app, this policy no longer governs it.
 
 ## Deleting your data
 
@@ -55,4 +55,4 @@ Any future changes will be posted on this page with an updated date.
 
 ## Contact
 
-Questions about this policy: support@ramirezlabs.app
+Questions about this policy: [YOUR EMAIL HERE]

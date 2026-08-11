@@ -28,11 +28,27 @@ struct TrackingArea: Codable, Identifiable, Equatable, Hashable {
     var category: TrackingCategory    // Skin Trend or Wound Recovery
     let createdDate: Date
 
-    init(name: String, category: TrackingCategory) {
+    /// How often to remind the user to photograph this area, in days.
+    /// 0 means no reminder.
+    ///
+    /// Per-area rather than a single app-wide setting on purpose: someone
+    /// tracking a healing wound may want a daily nudge, while someone
+    /// watching a mole is fine with monthly. One global interval would be
+    /// wrong for both.
+    var reminderIntervalDays: Int = 0
+
+    /// Which camera to use for this area. A spot on the face can't be
+    /// framed with the rear camera — the user can't see the guide box or
+    /// the ghost overlay — so the choice belongs to the area, not to a
+    /// global setting they'd have to toggle every time.
+    var usesFrontCamera: Bool = false
+
+    init(name: String, category: TrackingCategory, usesFrontCamera: Bool = false) {
         self.id = UUID()
         self.name = name
         self.category = category
         self.createdDate = Date()
+        self.usesFrontCamera = usesFrontCamera
     }
 
     // Used by the migration path in TrackingStore when adopting entries
@@ -43,4 +59,7 @@ struct TrackingArea: Codable, Identifiable, Equatable, Hashable {
         self.category = category
         self.createdDate = createdDate
     }
+
+    // Both new properties have defaults, so areas saved before they
+    // existed still decode cleanly — no migration needed.
 }

@@ -21,13 +21,32 @@ import AVFoundation
 
 struct GuidedCaptureView: View {
     let area: TrackingArea
+
+    /// Called when the user flips the camera, so the choice can be saved
+    /// against the area and restored next time.
+    var onCameraChange: ((Bool) -> Void)?
+
+    init(area: TrackingArea,
+         baselineImage: UIImage?,
+         onCameraChange: ((Bool) -> Void)? = nil,
+         onCapture: @escaping (UIImage) -> Void) {
+        self.area = area
+        self.baselineImage = baselineImage
+        self.onCameraChange = onCameraChange
+        self.onCapture = onCapture
+        // The camera is chosen per area, so it has to be built here rather
+        // than default-initialised as a property.
+        _camera = State(initialValue: CameraSessionController(
+            position: area.usesFrontCamera ? .front : .back
+        ))
+    }
     let baselineImage: UIImage?     // nil if this is the very first photo
 
     // A closure the caller provides to receive the finished photo —
     // keeps this view from needing to know about TrackingStore at all.
     let onCapture: (UIImage) -> Void
 
-    @State private var camera = CameraSessionController()
+    @State private var camera: CameraSessionController
     @State private var motion = MotionMonitor()
     @State private var focusPoint: CGPoint = .zero
     @State private var showFocusIndicator = false
@@ -50,7 +69,7 @@ struct GuidedCaptureView: View {
             // an oversized frame and pushed the Cancel button off the left
             // edge. An overlay is constrained to its host's bounds and can
             // never affect the parent's size, so the problem can't recur.
-            CameraPreviewView(session: camera.session)
+            CameraPreviewView(session: camera.session, isMirrored: camera.position == .front)
                 // Tap anywhere to focus there. Close-up subjects confuse
                 // centre-weighted autofocus, and a skin patch filling the
                 // frame gives it very little contrast to lock onto.
@@ -188,6 +207,7 @@ struct GuidedCaptureView: View {
             // control people reach for in a hurry.
             .contentShape(Rectangle())
             Spacer()
+            flipButton
         }
         .padding(.horizontal)
         // Push clear of the notch / Dynamic Island. The status bar is
@@ -236,6 +256,30 @@ struct GuidedCaptureView: View {
     /// workaround for close-up shots: stand where the lens can focus and
     /// zoom in to get the framing you wanted.
     @ViewBuilder
+    /// Flip button, placed on the capture screen rather than buried in
+    /// settings. Someone standing at a mirror with the camera facing the
+    /// wrong way reaches for this, not a configuration screen two taps
+    /// away. The choice is remembered per area, so it's a one-time action
+    /// in practice without ever being a setup step.
+    private var flipButton: some View {
+        Button {
+            camera.flipCamera()
+            onCameraChange?(camera.position == .back)   // about to become front
+        } label: {
+            Image(systemName: "arrow.triangle.2.circlepath.camera")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(.white)
+                .padding(12)
+                .background(.black.opacity(0.55), in: Circle())
+        }
+        .accessibilityLabel(camera.position == .front
+                            ? "Switch to rear camera"
+                            : "Switch to front camera")
+    }
+    /// Zoom presets. On hardware without macro this is the actual
+     /// workaround for close-up shots: stand where the lens can focus and
+     /// zoom in to get the framing you wanted.
+     @ViewBuilder
     private var zoomControls: some View {
         if camera.maxZoomFactor > 1.5 {
             HStack(spacing: 8) {
@@ -273,7 +317,17 @@ struct GuidedCaptureView: View {
     /// results.
     @ViewBuilder
     private var macroGuidance: some View {
-        if !camera.supportsMacro {
+        if camera.position == .front {
+            Text("Front camera. Hold the phone about arm's length away and use the screen to line up the box.")
+                .font(.caption)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(.black.opacity(0.6), in: Capsule())
+                .foregroundStyle(.white)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 8)
+        } else if !camera.supportsMacro {
             let distance = camera.minimumFocusDistanceCm.map { String(format: "%.0f", $0) } ?? "10"
             Text("This iPhone can't focus closer than about \(distance)cm. Stay back and use zoom to fill the box.")
                 .font(.caption)

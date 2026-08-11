@@ -10,22 +10,9 @@
 		5E7650673027F1C100242D13 /* CairnSkin.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CairnSkin.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		5E3FB250302947E400B6CF3E /* Exceptions for "CairnSkin" folder in "CairnSkin" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"CairnSkin-iOS/CairnSkin/Views/CameraPicker 2.swift",
-			);
-			target = 5E7650663027F1C100242D13 /* CairnSkin */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5E7650693027F1C100242D13 /* CairnSkin */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				5E3FB250302947E400B6CF3E /* Exceptions for "CairnSkin" folder in "CairnSkin" target */,
-			);
 			path = CairnSkin;
 			sourceTree = "<group>";
 		};
@@ -263,7 +250,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = UV9NBSUZA6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -304,7 +291,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 3;
 				DEVELOPMENT_TEAM = UV9NBSUZA6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;

@@ -39,8 +39,6 @@ struct TimelineView: View {
     // The generated PDF, held until the share sheet is dismissed.
     @State private var reportURL: URL?
     @State private var isGeneratingReport = false
-    @State private var renamingArea = false
-    @State private var renameText = ""
 
     /// The live area record from the store. The `area` parameter is a
     /// value copy taken at navigation time, so after a rename it would
@@ -86,16 +84,6 @@ struct TimelineView: View {
             }
         }
         .navigationTitle(currentArea.name)
-        .alert("Rename Area", isPresented: $renamingArea) {
-            TextField("Area name", text: $renameText)
-            Button("Save") {
-                let trimmed = renameText.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !trimmed.isEmpty {
-                    store.renameArea(currentArea, to: trimmed)
-                }
-            }
-            Button("Cancel", role: .cancel) {}
-        }
         .task {
             // Only on first appearance, and only when there's nothing
             // logged yet — reopening an existing area shouldn't ambush
@@ -138,11 +126,10 @@ struct TimelineView: View {
                     }
                     .disabled(store.entries(in: area).isEmpty)
 
-                    Button {
-                        renameText = currentArea.name
-                        renamingArea = true
+                    NavigationLink {
+                        AreaSettingsView(area: currentArea)
                     } label: {
-                        Label("Rename Area", systemImage: "pencil")
+                        Label("Area Settings", systemImage: "gearshape")
                     }
                 } label: {
                     Label("More", systemImage: "ellipsis.circle")
@@ -151,7 +138,16 @@ struct TimelineView: View {
         }
         // Real device: the live-guidance camera, full screen.
         .fullScreenCover(isPresented: $showingGuidedCapture) {
-            GuidedCaptureView(area: area, baselineImage: baselineImage) { image in
+            GuidedCaptureView(
+                area: currentArea,
+                baselineImage: baselineImage,
+                onCameraChange: { usesFront in
+                    // Remember the camera per area, so flipping is a
+                    // one-time action rather than something to redo on
+                    // every capture.
+                    store.updateCameraPreference(usesFront, for: currentArea)
+                }
+            ) { image in
                 capturedImage = image
             }
         }

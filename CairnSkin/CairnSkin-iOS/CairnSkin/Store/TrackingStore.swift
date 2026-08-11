@@ -47,12 +47,35 @@ final class TrackingStore {
     // MARK: - Areas
 
     @discardableResult
-    func addArea(name: String, category: TrackingCategory) -> TrackingArea {
-        let area = TrackingArea(name: name, category: category)
+    func addArea(name: String, category: TrackingCategory, usesFrontCamera: Bool = false) -> TrackingArea {
+        let area = TrackingArea(name: name, category: category, usesFrontCamera: usesFrontCamera)
         areas.append(area)
         areas.sort { $0.createdDate < $1.createdDate }
         saveAreas()
         return area
+    }
+
+    func updateCameraPreference(_ usesFront: Bool, for area: TrackingArea) {
+        guard let index = areas.firstIndex(where: { $0.id == area.id }) else { return }
+        areas[index].usesFrontCamera = usesFront
+        saveAreas()
+    }
+
+    /// Stores the reminder interval and (re)schedules the notification.
+    func updateReminder(days: Int, for area: TrackingArea) async {
+        guard let index = areas.firstIndex(where: { $0.id == area.id }) else { return }
+        areas[index].reminderIntervalDays = days
+        saveAreas()
+
+        if days > 0 {
+            await ReminderScheduler.schedule(
+                for: areas[index],
+                intervalDays: days,
+                lastCapture: entries(in: area).last?.date
+            )
+        } else {
+            ReminderScheduler.cancel(for: area)
+        }
     }
 
     func renameArea(_ area: TrackingArea, to newName: String) {
@@ -63,6 +86,7 @@ final class TrackingStore {
 
     /// Deletes an area and every photo logged under it.
     func deleteArea(_ area: TrackingArea) {
+        ReminderScheduler.cancel(for: area)
         for entry in entries(in: area) {
             archive.deleteFiles(for: entry)
         }
@@ -92,6 +116,17 @@ final class TrackingStore {
         entries.sort { $0.date > $1.date }   // newest first
         saveEntries()
 
+        // Push the reminder out from this capture. Without this the
+        // notification would still fire on the old schedule and nag
+        // someone who just took a photo.
+        if area.reminderIntervalDays > 0 {
+            await ReminderScheduler.schedule(
+                for: area,
+                intervalDays: area.reminderIntervalDays,
+                lastCapture: entry.date
+            )
+        }
+
         return entry
     }
 
@@ -113,6 +148,7 @@ final class TrackingStore {
     /// Removes every area, entry, photo, and vector. Irreversible, so the
     /// UI in SettingsView requires an explicit confirmation first.
     func deleteAllData() {
+        ReminderScheduler.cancelAll()
         for entry in entries {
             archive.deleteFiles(for: entry)
         }

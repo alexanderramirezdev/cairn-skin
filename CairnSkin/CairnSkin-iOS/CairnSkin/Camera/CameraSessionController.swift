@@ -50,6 +50,40 @@ final class CameraSessionController: NSObject {
 
     private var videoDevice: AVCaptureDevice?
 
+    /// Which camera is currently active. Front is needed for anything on
+    /// the face: with the rear camera the user can't see the framing box
+    /// or the ghost overlay, so guided capture doesn't work at all there.
+    ///
+    /// Observable so the UI can mirror the preview and label the flip
+    /// button correctly without being told separately.
+    private(set) var position: AVCaptureDevice.Position
+
+    init(position: AVCaptureDevice.Position = .back) {
+        self.position = position
+    }
+
+    /// Switches between front and rear cameras in place.
+    ///
+    /// This tears down the existing input and builds a new one rather than
+    /// recreating the whole controller, so the preview doesn't blank out
+    /// and the session keeps running through the swap.
+    func flipCamera() {
+        let newPosition: AVCaptureDevice.Position = (position == .back) ? .front : .back
+        sessionQueue.async { [weak self] in
+            guard let self else { return }
+            self.session.beginConfiguration()
+            for input in self.session.inputs {
+                self.session.removeInput(input)
+            }
+            self.isConfigured = false
+            self.addVideoInput(position: newPosition)
+            self.session.commitConfiguration()
+            DispatchQueue.main.async {
+                self.position = newPosition
+            }
+        }
+    }
+
     /// The internal videoZoomFactor that corresponds to display "1×".
     /// 1.0 on single-lens devices; the first switch-over factor
     /// (typically 2.0) on virtual multi-lens devices.
@@ -169,6 +203,74 @@ final class CameraSessionController: NSObject {
         session.beginConfiguration()
         session.sessionPreset = .photo
 
+        addVideoInput(position: position)
+
+        if session.canAddOutput(photoOutput) {
+            session.addOutput(photoOutput)
+        }
+        applyMirroring(for: position)
+
+        videoOutput.setSampleBufferDelegate(self, queue: sessionQueue)
+        videoOutput.alwaysDiscardsLateVideoFrames = true
+        if session.canAddOutput(videoOutput) {
+            session.addOutput(videoOutput)
+        }
+
+        session.commitConfiguration()
+        isConfigured = true
+        session.startRunning()
+
+        DispatchQueue.main.async { [weak self] in
+            self?.isSessionRunning = true
+        }
+    }
+}
+
+// MARK: - Live frame analysis
+
+// "AVCaptureVideoDataOutputSampleBufferDelegate" is how AVFoundation
+// hands us each raw frame as it arrives from the camera, in real time.
+extension CameraSessionController: AVCaptureVideoDataOutputSampleBufferDelegate {
+    func captureOutput(
+        _ output: AVCaptureOutput,
+        didOutput sampleBuffer: CMSampleBuffer,
+        from connection: AVCaptureConnection
+    ) {
+        frameCounter += 1
+        guard frameCounter % analyzeEveryNthFrame == 0 else { return }
+        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+
+        let quality = FrameQualityAnalyzer.analyze(pixelBuffer)
+        DispatchQueue.main.async { [weak self] in
+            self?.latestQuality = quality
+        }
+    }
+}
+
+// MARK: - Final photo capture
+
+extension CameraSessionController: AVCapturePhotoCaptureDelegate {
+    func photoOutput(
+        _ output: AVCapturePhotoOutput,
+        didFinishProcessingPhoto photo: AVCapturePhoto,
+        error: Error?
+    ) {
+        guard error == nil,
+              let data = photo.fileDataRepresentation(),
+              let image = UIImage(data: data)
+        else { return }
+
+        DispatchQueue.main.async { [weak self] in
+            self?.capturedImage = image
+        }
+    }
+
+    /// Selects and attaches the camera for the given position.
+    ///
+    /// Split out of buildSession so flipCamera() can reuse it: swapping
+    /// cameras means removing the old input and running this again, rather
+    /// than tearing down and rebuilding the whole session.
+    private func addVideoInput(position: AVCaptureDevice.Position) {
         // CAMERA SELECTION — this ordering is the whole macro fix.
         //
         // Requesting .builtInWideAngleCamera by name pins the session to
@@ -177,23 +279,31 @@ final class CameraSessionController: NSObject {
         // actually works) when the session is bound to a VIRTUAL device
         // that owns several lenses. So ask for those first, and fall back
         // to the single wide lens only on hardware that has nothing else.
-        let preferredTypes: [AVCaptureDevice.DeviceType] = [
-            .builtInTripleCamera,     // Pro models: wide + ultra-wide + tele
-            .builtInDualWideCamera,   // wide + ultra-wide
-            .builtInWideAngleCamera   // single lens (iPhone Air, older base models)
-        ]
+        //
+        // The front camera has none of that: one fixed lens, no macro, no
+        // switching. The virtual types simply don't exist on that side, so
+        // the discovery session falls through to the wide angle and the
+        // macro detection below correctly reports no macro capability.
+        let preferredTypes: [AVCaptureDevice.DeviceType] = position == .front
+            ? [.builtInWideAngleCamera]
+            : [.builtInTripleCamera,     // Pro models: wide + ultra-wide + tele
+               .builtInDualWideCamera,   // wide + ultra-wide
+               .builtInWideAngleCamera]  // single lens (iPhone Air, older base models)
+
         let discovery = AVCaptureDevice.DiscoverySession(
             deviceTypes: preferredTypes,
             mediaType: .video,
-            position: .back
+            position: position
         )
 
+        // No commitConfiguration() on this path: both callers
+        // (buildSession and flipCamera) own the begin/commit pair, so
+        // committing here would close a transaction they're still inside.
         guard
             let device = discovery.devices.first,
             let input = try? AVCaptureDeviceInput(device: device),
             session.canAddInput(input)
         else {
-            session.commitConfiguration()
             return
         }
         session.addInput(input)
@@ -284,62 +394,17 @@ final class CameraSessionController: NSObject {
             self?.zoomFactor = 1.0
         }
 
-        if session.canAddOutput(photoOutput) {
-            session.addOutput(photoOutput)
-        }
 
-        videoOutput.setSampleBufferDelegate(self, queue: sessionQueue)
-        videoOutput.alwaysDiscardsLateVideoFrames = true
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-        }
-
-        session.commitConfiguration()
-        isConfigured = true
-        session.startRunning()
-
-        DispatchQueue.main.async { [weak self] in
-            self?.isSessionRunning = true
-        }
+        applyMirroring(for: position)
     }
-}
 
-// MARK: - Live frame analysis
-
-// "AVCaptureVideoDataOutputSampleBufferDelegate" is how AVFoundation
-// hands us each raw frame as it arrives from the camera, in real time.
-extension CameraSessionController: AVCaptureVideoDataOutputSampleBufferDelegate {
-    func captureOutput(
-        _ output: AVCaptureOutput,
-        didOutput sampleBuffer: CMSampleBuffer,
-        from connection: AVCaptureConnection
-    ) {
-        frameCounter += 1
-        guard frameCounter % analyzeEveryNthFrame == 0 else { return }
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-
-        let quality = FrameQualityAnalyzer.analyze(pixelBuffer)
-        DispatchQueue.main.async { [weak self] in
-            self?.latestQuality = quality
-        }
-    }
-}
-
-// MARK: - Final photo capture
-
-extension CameraSessionController: AVCapturePhotoCaptureDelegate {
-    func photoOutput(
-        _ output: AVCapturePhotoOutput,
-        didFinishProcessingPhoto photo: AVCapturePhoto,
-        error: Error?
-    ) {
-        guard error == nil,
-              let data = photo.fileDataRepresentation(),
-              let image = UIImage(data: data)
-        else { return }
-
-        DispatchQueue.main.async { [weak self] in
-            self?.capturedImage = image
-        }
+    /// Mirrors the front camera's photo output so the saved image matches
+    /// the preview. Without this the photo comes out flipped relative to
+    /// what the user framed.
+    private func applyMirroring(for position: AVCaptureDevice.Position) {
+        guard let connection = photoOutput.connection(with: .video),
+              connection.isVideoMirroringSupported else { return }
+        connection.automaticallyAdjustsVideoMirroring = false
+        connection.isVideoMirrored = (position == .front)
     }
 }

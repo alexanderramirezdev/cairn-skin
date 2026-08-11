@@ -14,10 +14,21 @@ import AVFoundation
 struct CameraPreviewView: UIViewRepresentable {
     let session: AVCaptureSession
 
+    /// Mirrors the live preview for the front camera, matching the photo
+    /// output's mirroring so what the user sees and what gets saved agree.
+    /// Without it, moving left appears to move right and lining up against
+    /// the ghost overlay becomes guesswork.
+    var isMirrored: Bool = false
+
     func makeUIView(context: Context) -> PreviewUIView {
         let view = PreviewUIView()
         view.videoPreviewLayer.session = session
         view.videoPreviewLayer.videoGravity = .resizeAspectFill
+        if isMirrored, let connection = view.videoPreviewLayer.connection,
+           connection.isVideoMirroringSupported {
+            connection.automaticallyAdjustsVideoMirroring = false
+            connection.isVideoMirrored = true
+        }
         return view
     }
 

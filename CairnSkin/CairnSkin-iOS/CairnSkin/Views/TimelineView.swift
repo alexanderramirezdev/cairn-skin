@@ -47,6 +47,11 @@ struct TimelineView: View {
         store.areas.first { $0.id == area.id } ?? area
     }
     @State private var hasAutoOpened = false
+    @State private var showingReminderPrompt = false
+
+    /// Tracks which areas have already been offered a reminder, so the
+    /// prompt appears exactly once per area and never nags.
+    @AppStorage("promptedReminderAreaIDs") private var promptedAreaIDs = ""
 
     private var hasCamera: Bool {
         UIImagePickerController.isSourceTypeAvailable(.camera)
@@ -168,11 +173,35 @@ struct TimelineView: View {
                         store.updateNote(note, for: entry)
                     }
                     pendingNoteImage = nil
+                    // Offer a reminder once the user has finished the whole
+                    // loop and is back on the timeline — see
+                    // ReminderPromptView for why this moment and not during
+                    // capture.
+                    maybeOfferReminder()
                 }
             }
         }
         .sheet(item: $reportURL) { url in
             ShareSheet(items: [url])
+        }
+        .sheet(isPresented: $showingReminderPrompt) {
+            ReminderPromptView(areaName: currentArea.name) { days in
+                guard days > 0 else { return }
+                Task {
+                    // Permission is requested only now, once the user has
+                    // actually asked for reminders. iOS only ever asks
+                    // once, so spending that prompt before they want the
+                    // feature would waste it.
+                    let status = await ReminderScheduler.authorizationStatus()
+                    if status == .notDetermined {
+                        let granted = await ReminderScheduler.requestAuthorization()
+                        guard granted else { return }
+                    } else if status == .denied {
+                        return
+                    }
+                    await store.updateReminder(days: days, for: currentArea)
+                }
+            }
         }
         .overlay {
             if isGeneratingReport {
@@ -189,6 +218,24 @@ struct TimelineView: View {
             Button("OK") { errorMessage = nil }
         } message: { message in
             Text(message)
+        }
+    }
+
+    /// Shows the reminder prompt after the first photo in an area, once.
+    private func maybeOfferReminder() {
+        let id = currentArea.id.uuidString
+        guard !promptedAreaIDs.contains(id) else { return }
+        guard currentArea.reminderIntervalDays == 0 else { return }
+        // Only after the first photo. Someone who already has a history
+        // here has made their own rhythm and doesn't need prompting.
+        guard store.entries(in: currentArea).count == 1 else { return }
+
+        promptedAreaIDs += id + ","
+        // Small delay so the note sheet has finished dismissing; presenting
+        // two sheets in the same runloop tick silently drops the second.
+        Task {
+            try? await Task.sleep(for: .milliseconds(450))
+            showingReminderPrompt = true
         }
     }
 

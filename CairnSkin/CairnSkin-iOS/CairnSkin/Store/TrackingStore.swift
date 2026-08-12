@@ -179,6 +179,8 @@ final class TrackingStore {
     /// than discarding them, bucket them into one auto-created area per
     /// category so nothing the user logged disappears.
     private func migrateLegacyEntriesIfNeeded() {
+        recoverOrphanedEntries()
+
         let orphans = entries.filter { $0.areaID == nil }
         guard !orphans.isEmpty else { return }
 
@@ -201,6 +203,54 @@ final class TrackingStore {
         areas.sort { $0.createdDate < $1.createdDate }
         saveAreas()
         saveEntries()
+    }
+
+    /// Rebuilds areas for entries whose area record no longer exists.
+    ///
+    /// WHY THIS EXISTS:
+    /// A decoding bug in an earlier build made areas.json fail to load,
+    /// so the app looked empty. Creating a new area then overwrote the
+    /// file — losing the area RECORDS (names, settings) but not the
+    /// entries, photos, or vectors, which all live in separate files and
+    /// were never touched.
+    ///
+    /// This walks the entries, finds any whose areaID matches no existing
+    /// area, and reconstructs an area per orphaned ID. The original name
+    /// is unrecoverable (it only lived in areas.json), so recovered areas
+    /// get a generic name the user can rename. Keeping the ORIGINAL id
+    /// matters: the entries already point at it, so adopting them requires
+    /// no rewriting at all.
+    ///
+    /// Runs on every launch and does nothing when there's nothing to
+    /// recover, so it doubles as a safety net if anything like this ever
+    /// happens again.
+    private func recoverOrphanedEntries() {
+        let knownAreaIDs = Set(areas.map(\.id))
+        let orphaned = entries.filter { entry in
+            guard let areaID = entry.areaID else { return false }   // legacy path handles nil
+            return !knownAreaIDs.contains(areaID)
+        }
+        guard !orphaned.isEmpty else { return }
+
+        let orphanedByArea = Dictionary(grouping: orphaned) { $0.areaID! }
+        var recoveredCount = 0
+
+        for (lostAreaID, areaEntries) in orphanedByArea {
+            recoveredCount += 1
+            let earliest = areaEntries.map(\.date).min() ?? Date()
+            let category = areaEntries.first?.category ?? .skin
+
+            let recovered = TrackingArea(
+                id: lostAreaID,                       // entries already point here
+                name: recoveredCount == 1 ? "Recovered area" : "Recovered area \(recoveredCount)",
+                category: category,
+                createdDate: earliest
+            )
+            areas.append(recovered)
+        }
+
+        areas.sort { $0.createdDate < $1.createdDate }
+        saveAreas()
     }
 
     private func saveEntries() {

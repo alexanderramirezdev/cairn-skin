@@ -13,11 +13,6 @@ struct SettingsView: View {
     @Environment(AppLock.self) private var appLock
     @Environment(TrackingStore.self) private var store
 
-    /// Surfaces the raw distance value on the compare screen. Off by
-    /// default; genuinely useful for anyone curious about what the
-    /// similarity number is derived from — and for calibration work.
-    @AppStorage("showComparisonDetails") private var showComparisonDetails = false
-
     @State private var confirmingDeleteAll = false
 
     private var appVersion: String {
@@ -42,12 +37,6 @@ struct SettingsView: View {
                 } footer: {
                     Text("On by default. \(appLock.biometryName) is asked for before your photos are shown, starting once you've saved your first photo. Your photos never leave this device, and there's no account or password — this lock is handled entirely by iOS.")
                 }
-            }
-
-            Section {
-                Toggle("Show comparison details", isOn: $showComparisonDetails)
-            } footer: {
-                Text("Displays the underlying distance value on the compare screen. Smaller means more visually similar. For the curious — the plain percentage tells the same story.")
             }
 
             Section {

@@ -28,12 +28,6 @@ struct CompareView: View {
     @State private var confirmingDelete = false
     @Environment(\.dismiss) private var dismiss
 
-    // User-facing option (Settings > "Show comparison details"). Surfaces
-    // the raw Vision distance under the percentage. Doubles as the
-    // calibration readout during development — the same number that was
-    // previously behind a dev-only flag.
-    @AppStorage("showComparisonDetails") private var showComparisonDetails = false
-
     private var baselineEntry: TrackingEntry? {
         store.entries(in: area).first   // oldest entry in the area = baseline
     }
@@ -142,14 +136,38 @@ struct CompareView: View {
                 ProgressView()
             }
 
-            // Optional detail, toggled in Settings. Uses .secondary
-            // rather than a hardcoded color so it adapts to light/dark.
-            if showComparisonDetails, let rawDistance {
-                Text(String(format: "distance: %.4f (smaller = more similar)", rawDistance))
+            // Framing caveat. Shown when the two photos differ enough that
+            // the difference could be how they were taken rather than what
+            // they show. Deliberately worded as a possibility, not a
+            // verdict: a genuinely large change lands in this band too, and
+            // the app has no way to tell the two apart.
+            if let rawDistance, FeatureExtractor.framingLooksInconsistent(distance: rawDistance) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "viewfinder")
+                        .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
+                    Text("These two photos are framed quite differently. Distance, angle, and background all affect this number, so check the framing matches before reading this as a change in the area itself.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 10)
+                .padding(.horizontal, 4)
+            }
+
+            // Raw distance readout — DEBUG builds only. It's a calibration
+            // tool, not a feature: the number means nothing without the
+            // reference measurements to compare it against, and showing it
+            // invites people to over-read a figure the percentage already
+            // expresses.
+            #if DEBUG
+            if let rawDistance {
+                Text(String(format: "distance: %.4f", rawDistance))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .padding(.top, 2)
             }
+            #endif
 
             // The disclaimer travels with the number every time it's shown —
             // never let this figure appear on screen without this context.

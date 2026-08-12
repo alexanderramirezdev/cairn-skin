@@ -50,6 +50,14 @@ final class AppLock {
     private static let enabledKey = "appLockEnabled"
 
     init() {
+        // Resolve biometry capability once, here, rather than on every
+        // property read. canEvaluatePolicy must run before biometryType
+        // is populated, so both come from the same context.
+        let probe = LAContext()
+        var probeError: NSError?
+        cachedBiometricsAvailable = probe.canEvaluatePolicy(.deviceOwnerAuthentication, error: &probeError)
+        cachedBiometryType = probe.biometryType
+
         // Default ON. Most people won't think to go looking for a privacy
         // setting, and photos of your own body are exactly the kind of
         // thing that should be protected without having to ask for it.
@@ -82,22 +90,28 @@ final class AppLock {
         isEnabled && hasStoredPhotos
     }
 
+    /// Cached biometry capability, resolved once at init.
+    ///
+    /// These used to be computed properties that each created a fresh
+    /// LAContext and called canEvaluatePolicy on every read. That call
+    /// talks to the biometric subsystem and isn't free, and SwiftUI reads
+    /// computed properties repeatedly during rendering — so the lock
+    /// screen was paying that cost several times over before it even got
+    /// to asking for Face ID. Resolving once at launch removes that from
+    /// the path between tapping the icon and seeing the prompt.
+    private let cachedBiometryType: LABiometryType
+    private let cachedBiometricsAvailable: Bool
+
     /// Whether this device can do biometrics at all. Used to hide the
     /// setting on devices where it would never work.
     var biometricsAvailable: Bool {
-        var error: NSError?
-        return LAContext().canEvaluatePolicy(.deviceOwnerAuthentication, error: &error)
+        cachedBiometricsAvailable
     }
 
     /// Human-readable name for whatever this device uses, so the UI can
     /// say "Face ID" instead of a generic "biometrics".
     var biometryName: String {
-        let context = LAContext()
-        // biometryType is only populated AFTER canEvaluatePolicy runs —
-        // reading it on a fresh context returns .none regardless of the
-        // hardware.
-        _ = context.canEvaluatePolicy(.deviceOwnerAuthentication, error: nil)
-        switch context.biometryType {
+        switch cachedBiometryType {
         case .faceID: return "Face ID"
         case .touchID: return "Touch ID"
         case .opticID: return "Optic ID"

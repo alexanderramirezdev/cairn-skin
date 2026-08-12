@@ -179,6 +179,30 @@ nonisolated enum FeatureExtractor {
     // produced. Re-check if new measurements cluster differently.
     static let notComparableThreshold: Float = 0.85
 
+    /// Above this distance, a comparison is still shown but flagged as
+    /// possibly reflecting framing rather than the subject.
+    ///
+    /// CALIBRATION — measured on device, post-crop:
+    ///   ~0.20  same subject, photos seconds apart
+    ///   ~0.26  same subject, re-framed using the alignment guide
+    ///   ~0.57  same subject, re-framed BADLY (different distance,
+    ///          angle, and background)
+    ///   ~0.96  an unrelated object
+    ///
+    /// 0.45 sits well clear of a properly re-framed capture while
+    /// catching the badly-framed case. It deliberately does NOT claim the
+    /// difference IS framing — a genuinely large change can land here too.
+    /// It only says the photos differ enough that framing is worth ruling
+    /// out, which is the honest reading of a single number that describes
+    /// two photographs rather than a body.
+    static let framingConcernThreshold: Float = 0.45
+
+    /// Whether a comparison is far enough from the baseline that framing
+    /// should be ruled out before reading it as change.
+    static func framingLooksInconsistent(distance: Float) -> Bool {
+        distance >= framingConcernThreshold && distance < notComparableThreshold
+    }
+
     static func isComparable(distance: Float) -> Bool {
         distance < notComparableThreshold
     }

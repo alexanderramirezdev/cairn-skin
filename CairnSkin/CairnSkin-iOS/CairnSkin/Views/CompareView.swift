@@ -121,13 +121,27 @@ struct CompareView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             } else if let similarityPercent {
-                Text("\(similarityPercent)%")
-                    .font(.system(size: 48, weight: .bold))
-                    .accessibilityLabel("\(similarityPercent) percent visual similarity to your baseline photo")
-                Text("visual similarity to your baseline")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)   // covered by the label above
+                // DEMOTED from a 48pt hero number to a supporting line.
+                //
+                // The number was the loudest thing on this screen, which
+                // made people read it as a verdict on their skin. It isn't:
+                // it describes how alike two photographs are, and lighting
+                // and backdrop move it as much as the subject does. A
+                // tester's healing scratch scored 43% and then 45% while
+                // visibly improving — the photos told the truth and the
+                // number argued with them.
+                //
+                // The photographs are the comparison now. This supports
+                // them rather than overriding them.
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text("\(similarityPercent)%")
+                        .font(.title2.weight(.semibold))
+                    Text("visually similar to your baseline")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(similarityPercent) percent visually similar to your baseline photo")
             } else if let comparisonError {
                 Text(comparisonError)
                     .font(.subheadline)
@@ -220,7 +234,11 @@ private struct PhotoCard: View {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 180)
+                    // Taller than the old 180. The photographs ARE the
+                    // comparison — a person looking at two pictures of a
+                    // healing scratch can see it improving, which is more
+                    // reliable than any single number describing them.
+                    .frame(height: 260)
                     .frame(maxWidth: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: 14))
             }

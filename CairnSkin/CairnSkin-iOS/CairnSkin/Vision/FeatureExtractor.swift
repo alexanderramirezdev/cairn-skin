@@ -85,16 +85,59 @@ nonisolated enum FeatureExtractor {
     static let regionOfInterestFraction: CGFloat = 0.6
 
     // Crops to the central square region defined above.
+    /// The aspect ratio (width / height) of the preview the user framed
+    /// through, when known.
+    ///
+    /// This exists because the preview uses `.resizeAspectFill`: the
+    /// captured photo is 4:3 but the screen is far taller and narrower, so
+    /// the sides of the photo are scaled off-screen. On an iPhone 17 Pro
+    /// Max the user only ever sees about 61% of the photo's width.
+    ///
+    /// That caused a real bug. The guide box was drawn at 0.6 of the
+    /// SCREEN, while the crop took 0.6 of the whole PHOTO — the same
+    /// fraction of two different things. The analyzed square ended up 1.63x
+    /// wider than the box, meaning 2.66x its area, so roughly 62% of what
+    /// was being compared was background the user never saw and had no way
+    /// to control. Lighting and backdrop swamped the subject, which is why
+    /// two photos of the same healing scratch scored 43% and then 45%
+    /// despite obviously improving.
+    ///
+    /// Cropping to the visible region first makes "0.6" mean 0.6 of what
+    /// the user actually framed, so the box on screen and the region
+    /// analyzed are finally the same square.
+    nonisolated(unsafe) static var previewAspectRatio: CGFloat?
+
     static func cropToRegionOfInterest(_ image: UIImage) -> UIImage {
         guard let cgImage = image.cgImage else { return image }
 
-        let width = CGFloat(cgImage.width)
-        let height = CGFloat(cgImage.height)
-        // Use the shorter side so the crop is always a square that fits.
+        var width = CGFloat(cgImage.width)
+        var height = CGFloat(cgImage.height)
+        var originX: CGFloat = 0
+        var originY: CGFloat = 0
+
+        // STEP 1: reduce to the region the user could actually see, so the
+        // fraction below is applied to the framed view rather than to
+        // parts of the photo that were never on screen.
+        if let previewAspect = previewAspectRatio, previewAspect > 0 {
+            let imageAspect = width / height
+            if imageAspect > previewAspect {
+                // Photo is wider than the preview: the sides were cropped.
+                let visibleWidth = height * previewAspect
+                originX = (width - visibleWidth) / 2
+                width = visibleWidth
+            } else {
+                // Photo is taller: the top and bottom were cropped.
+                let visibleHeight = width / previewAspect
+                originY = (height - visibleHeight) / 2
+                height = visibleHeight
+            }
+        }
+
+        // STEP 2: the centred square, matching the dashed guide box.
         let side = min(width, height) * regionOfInterestFraction
         let cropRect = CGRect(
-            x: (width - side) / 2,
-            y: (height - side) / 2,
+            x: originX + (width - side) / 2,
+            y: originY + (height - side) / 2,
             width: side,
             height: side
         )

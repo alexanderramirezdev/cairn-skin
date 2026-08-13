@@ -118,6 +118,13 @@ struct GuidedCaptureView: View {
                     .stroke(.white.opacity(0.9), style: StrokeStyle(lineWidth: 2, dash: [8, 6]))
                     .frame(width: side, height: side)
                     .position(x: geo.size.width / 2, y: geo.size.height / 2)
+                    // Tell the extractor what the user is actually seeing.
+                    // The preview crops the photo to fill the screen, so
+                    // without this the analyzed square is much larger than
+                    // this box — see FeatureExtractor.previewAspectRatio.
+                    .onAppear {
+                        FeatureExtractor.previewAspectRatio = geo.size.width / geo.size.height
+                    }
             }
             .allowsHitTesting(false)
 
@@ -252,10 +259,6 @@ struct GuidedCaptureView: View {
         .padding(.bottom, 16)
     }
 
-    /// Zoom presets. On hardware without macro this is the actual
-    /// workaround for close-up shots: stand where the lens can focus and
-    /// zoom in to get the framing you wanted.
-    @ViewBuilder
     /// Flip button, placed on the capture screen rather than buried in
     /// settings. Someone standing at a mirror with the camera facing the
     /// wrong way reaches for this, not a configuration screen two taps
@@ -276,10 +279,11 @@ struct GuidedCaptureView: View {
                             ? "Switch to rear camera"
                             : "Switch to front camera")
     }
+
     /// Zoom presets. On hardware without macro this is the actual
-     /// workaround for close-up shots: stand where the lens can focus and
-     /// zoom in to get the framing you wanted.
-     @ViewBuilder
+    /// workaround for close-up shots: stand where the lens can focus and
+    /// zoom in to get the framing you wanted.
+    @ViewBuilder
     private var zoomControls: some View {
         if camera.maxZoomFactor > 1.5 {
             HStack(spacing: 8) {

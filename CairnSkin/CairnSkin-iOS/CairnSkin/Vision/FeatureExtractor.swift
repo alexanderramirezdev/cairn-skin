@@ -82,6 +82,29 @@ nonisolated enum FeatureExtractor {
     // Cropping to the center forces the metric to focus on the area the
     // user is actually pointing at, and pairs with the on-screen framing
     // guide in GuidedCaptureView so people know where to put the subject.
+    /// Bumped whenever anything changes about how a feature print is
+    /// produced: the crop region, the preview-aware cropping, any future
+    /// colour normalisation.
+    ///
+    /// WHY THIS EXISTS:
+    /// Feature prints are computed once at capture time and archived to
+    /// disk. Changing the extraction pipeline therefore does NOT update
+    /// vectors that already exist — a baseline captured before a change
+    /// describes a different region than a photo captured after it, and
+    /// comparing the two produces a number that means nothing.
+    ///
+    /// That's exactly what happened when the region-of-interest crop was
+    /// corrected: every stored vector suddenly described a wider region
+    /// than new ones did. TrackingStore compares this against the
+    /// generation it last migrated and recomputes vectors from the saved
+    /// photos when they differ.
+    ///
+    /// Generation history:
+    ///   1 — original centred crop at 0.6 of the full photo
+    ///   2 — crop reduced to the preview's visible region first, so the
+    ///       analysed square matches the on-screen guide box
+    static let extractionGeneration = 2
+
     static let regionOfInterestFraction: CGFloat = 0.6
 
     // Crops to the central square region defined above.
@@ -261,28 +284,14 @@ nonisolated enum FeatureExtractor {
     // similar," implying a 16% change that did not occur. In a tracking
     // app that false signal is worse than no signal. Anything at or below
     // this floor is reported as no detectable change.
+    /// Distance below which two photos are effectively identical: the
+    /// residual noise of re-photographing the same thing under the same
+    /// conditions. Measured on device at ~0.204.
+    ///
+    /// Nothing computes with this any more — the percentage it used to
+    /// scale is gone. It's kept as the reference point for reading a raw
+    /// distance during calibration, and it's shown next to the developer
+    /// readout for exactly that purpose.
     static let noiseFloor: Float = 0.20
 
-    // Converts a raw distance into a "percent similar" figure for display,
-    // mapped across the band that actually carries meaning: from the
-    // noise floor (no detectable change) up to the point where two photos
-    // stop being comparable at all.
-    //
-    // CALIBRATION NOTE — measured on a real device, post-crop:
-    //   ~0.19  same subject, photos taken seconds apart  -> 100%
-    //   ~0.26  same subject, re-framed with the guide     -> ~92%
-    // The upper bound reuses notComparableThreshold so the two settings
-    // can't drift apart.
-    //
-    // This remains an approximation tuned on a small sample. Never let
-    // the resulting number be presented as a clinical measurement — it's
-    // a wellness trend indicator, and the disclaimer in CompareView goes
-    // with it always.
-    static func similarityPercent(forDistance distance: Float) -> Int {
-        if distance <= noiseFloor { return 100 }
-        let span = notComparableThreshold - noiseFloor
-        let position = (distance - noiseFloor) / span
-        let similarity = 1 - min(max(position, 0), 1)
-        return Int((similarity * 100).rounded())
-    }
 }

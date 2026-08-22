@@ -35,7 +35,7 @@ nonisolated enum ReportGenerator {
     private static let pageHeight: CGFloat = 792
     private static let margin: CGFloat = 48
 
-    private static let disclaimer = "Cairn Skin is a personal wellness tracking tool. It does not diagnose, screen for, or assess any medical condition. The percentages shown describe how visually similar two photographs are — they are not medical measurements, and they do not indicate whether anything has improved or worsened. Photo comparisons are affected by lighting, camera angle, and distance. Always consult a qualified healthcare provider about any health concern."
+    private static let disclaimer = "Cairn Skin is a personal wellness journal. It does not diagnose, screen for, or assess any medical condition. This document is a record of photographs the user took and any notes they added, nothing more. Photographs are affected by lighting, camera angle, and distance, so apparent differences between them may not reflect a real change. Always consult a qualified healthcare provider about any health concern."
 
     /// Writes a PDF to a temporary file and returns its URL.
     ///
@@ -189,21 +189,36 @@ nonisolated enum ReportGenerator {
         ])
         textY += 20
 
+        // NO SIMILARITY FIGURE.
+        //
+        // This is the version most likely to end up in front of a
+        // clinician, which makes it the worst place for a number that
+        // looks like a measurement and isn't. The Vision distance is
+        // dominated by lighting and background rather than by the subject,
+        // and printing it on a document someone brings to an appointment
+        // gives it an authority it can't support.
+        //
+        // The photographs, dates, and notes are the record. They're also
+        // what's actually useful in that room.
+        //
+        // The one exception is kept below: "not comparable" is a strong,
+        // reliable signal (an unrelated object scores far outside the range
+        // of any same-subject pair), and flagging a photo that doesn't
+        // belong is worth doing.
         if let baselinePrint,
            let print = archive.featurePrint(for: entry),
            index > 0 {
             let distance = (try? FeatureExtractor.distance(between: baselinePrint, and: print)) ?? 0
-            let text: String
-            if FeatureExtractor.isComparable(distance: distance) {
-                text = "\(FeatureExtractor.similarityPercent(forDistance: distance))% visually similar to baseline"
-            } else {
-                text = "Not comparable to baseline (may show a different subject)"
+            if !FeatureExtractor.isComparable(distance: distance) {
+                "May not show the same area as the baseline".draw(
+                    at: CGPoint(x: textX, y: textY),
+                    withAttributes: [
+                        .font: UIFont.systemFont(ofSize: 11),
+                        .foregroundColor: UIColor.darkGray
+                    ]
+                )
+                textY += 18
             }
-            text.draw(at: CGPoint(x: textX, y: textY), withAttributes: [
-                .font: UIFont.systemFont(ofSize: 11),
-                .foregroundColor: UIColor.darkGray
-            ])
-            textY += 18
         }
 
         if !entry.note.isEmpty {

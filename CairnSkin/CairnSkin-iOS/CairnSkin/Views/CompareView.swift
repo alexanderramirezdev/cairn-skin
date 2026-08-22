@@ -21,9 +21,9 @@ struct CompareView: View {
     let selectedEntry: TrackingEntry
 
     @Environment(TrackingStore.self) private var store
-    @State private var similarityPercent: Int?
     @State private var rawDistance: Float?
     @State private var notComparable = false
+    @AppStorage("developerReadoutEnabled") private var developerReadoutEnabled = false
     @State private var comparisonError: String?
     @State private var confirmingDelete = false
     @Environment(\.dismiss) private var dismiss
@@ -107,6 +107,21 @@ struct CompareView: View {
         }
     }
 
+    /// One-line note with an icon, used for both the framing caveat and
+    /// the all-clear.
+    private func resultNote(icon: String, tint: Color, text: String) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+                .accessibilityHidden(true)
+            Text(text)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.horizontal, 4)
+    }
+
     @ViewBuilder
     private var resultCard: some View {
         VStack(spacing: 8) {
@@ -120,53 +135,44 @@ struct CompareView: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-            } else if let similarityPercent {
-                // DEMOTED from a 48pt hero number to a supporting line.
+            } else if rawDistance != nil {
+                // NO PERCENTAGE.
                 //
-                // The number was the loudest thing on this screen, which
-                // made people read it as a verdict on their skin. It isn't:
-                // it describes how alike two photographs are, and lighting
-                // and backdrop move it as much as the subject does. A
-                // tester's healing scratch scored 43% and then 45% while
-                // visibly improving — the photos told the truth and the
-                // number argued with them.
+                // The distance is still computed, and it's reliable enough
+                // to say "these two photographs differ a lot." It is not
+                // reliable enough to put a number on: lighting and backdrop
+                // move it as much as the subject does. A tester's healing
+                // scratch scored 43%, then 45%, then 22% across three
+                // photos while visibly getting better — the pictures told
+                // the truth and the figure argued with them, and a number
+                // on screen always wins that argument.
                 //
-                // The photographs are the comparison now. This supports
-                // them rather than overriding them.
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("\(similarityPercent)%")
-                        .font(.title2.weight(.semibold))
-                    Text("visually similar to your baseline")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                // So the measurement stays, but it only decides which of
+                // the notes below to show. The photographs above are the
+                // comparison.
+                if let rawDistance, FeatureExtractor.framingLooksInconsistent(distance: rawDistance) {
+                    resultNote(
+                        icon: "viewfinder",
+                        tint: .orange,
+                        text: "These photos differ in more than the area itself. Lighting, distance, angle, and background all change how a photo looks, so match the conditions of your first photo before reading this as a real change."
+                    )
+                } else {
+                    // Worth saying explicitly. It confirms the guided
+                    // capture did its job, which is the behaviour the app
+                    // wants to encourage, and it tells the user the two
+                    // pictures are fair to compare by eye.
+                    resultNote(
+                        icon: "checkmark.circle",
+                        tint: .green,
+                        text: "These photos were taken under similar conditions, so they're fair to compare side by side."
+                    )
                 }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("\(similarityPercent) percent visually similar to your baseline photo")
             } else if let comparisonError {
                 Text(comparisonError)
                     .font(.subheadline)
                     .foregroundStyle(.orange)
             } else {
                 ProgressView()
-            }
-
-            // Framing caveat. Shown when the two photos differ enough that
-            // the difference could be how they were taken rather than what
-            // they show. Deliberately worded as a possibility, not a
-            // verdict: a genuinely large change lands in this band too, and
-            // the app has no way to tell the two apart.
-            if let rawDistance, FeatureExtractor.framingLooksInconsistent(distance: rawDistance) {
-                HStack(alignment: .top, spacing: 8) {
-                    Image(systemName: "viewfinder")
-                        .foregroundStyle(.orange)
-                        .accessibilityHidden(true)
-                    Text("These two photos are framed quite differently. Distance, angle, and background all affect this number, so check the framing matches before reading this as a change in the area itself.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.top, 10)
-                .padding(.horizontal, 4)
             }
 
             // Raw distance readout — DEBUG builds only. It's a calibration
@@ -183,9 +189,10 @@ struct CompareView: View {
             }
             #endif
 
-            // The disclaimer travels with the number every time it's shown —
-            // never let this figure appear on screen without this context.
-            Text("A wellness trend indicator only. This is not a medical measurement and does not diagnose or assess any condition.")
+            // Kept even though no figure is shown now: the screen still
+            // invites a judgement about a body, and this is the line that
+            // says the app isn't making one.
+            Text("A wellness journal only. This does not diagnose, screen for, or assess any condition.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -213,7 +220,6 @@ struct CompareView: View {
             // read as a measurement, and there's nothing real to measure
             // between two unrelated photos.
             if FeatureExtractor.isComparable(distance: distance) {
-                similarityPercent = FeatureExtractor.similarityPercent(forDistance: distance)
             } else {
                 notComparable = true
             }

@@ -62,40 +62,4 @@ struct TrackingArea: Codable, Identifiable, Equatable, Hashable {
 
     // Both new properties have defaults, so areas saved before they
     // existed still decode cleanly — no migration needed.
-
-    // MARK: - Codable
-    //
-    // A default value on a stored property (like "= 0" above) only tells
-    // the COMPILER what to use for new instances. It does NOT make the
-    // auto-generated decoder tolerant of that key being absent from
-    // already-saved JSON — the synthesized decoder still calls decode(),
-    // not decodeIfPresent(), and throws if the key is missing.
-    //
-    // That's what broke existing users' data here: reminderIntervalDays
-    // and usesFrontCamera were added after people already had areas.json
-    // on disk without those keys. Decoding threw, and TrackingStore's
-    // "try? decode(...) ?? []" turned that failure into a silently empty
-    // list — indistinguishable from "no areas" to anyone looking at the
-    // app, even though the real data was untouched on disk the whole
-    // time.
-    //
-    // This explicit initializer uses decodeIfPresent for the fields added
-    // after launch, so old saves without them decode successfully instead
-    // of failing the whole array. Encoding still writes every field, so
-    // once re-saved once, the JSON is fully up to date and this path
-    // isn't hit for that record again.
-    //
-    // RULE FOR NEXT TIME: any Codable stored property added to a type
-    // that already has saved data on people's devices needs this same
-    // treatment — decodeIfPresent with a fallback, not decode(). Adding a
-    // plain "= default" alone is not enough.
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(UUID.self, forKey: .id)
-        name = try container.decode(String.self, forKey: .name)
-        category = try container.decode(TrackingCategory.self, forKey: .category)
-        createdDate = try container.decode(Date.self, forKey: .createdDate)
-        reminderIntervalDays = try container.decodeIfPresent(Int.self, forKey: .reminderIntervalDays) ?? 0
-        usesFrontCamera = try container.decodeIfPresent(Bool.self, forKey: .usesFrontCamera) ?? false
-    }
 }

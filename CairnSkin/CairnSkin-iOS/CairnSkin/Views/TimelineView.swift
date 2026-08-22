@@ -116,13 +116,15 @@ struct TimelineView: View {
             }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    // Trend needs at least 3 photos to say anything useful.
+                    // Replaced the trend chart. See ProgressGridView for
+                    // why a line graph of the similarity figure was worse
+                    // than showing the photographs themselves.
                     NavigationLink {
-                        TrendView(area: area)
+                        ProgressGridView(area: area)
                     } label: {
-                        Label("Change Over Time", systemImage: "chart.line.uptrend.xyaxis")
+                        Label("All Photos", systemImage: "square.grid.2x2")
                     }
-                    .disabled(store.entries(in: area).count < 3)
+                    .disabled(store.entries(in: area).isEmpty)
 
                     Button {
                         generateReport()

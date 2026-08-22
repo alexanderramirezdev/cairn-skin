@@ -14,6 +14,19 @@ struct SettingsView: View {
     @Environment(TrackingStore.self) private var store
 
     @State private var confirmingDeleteAll = false
+    @State private var versionTapCount = 0
+
+    /// Reveals the raw comparison distance on the compare screen.
+    ///
+    /// Deliberately hidden behind five taps on the version line, the same
+    /// pattern Android uses for its developer options. The distance is a
+    /// calibration tool, not a feature: it's meaningless without the
+    /// reference measurements to read it against, and putting it in plain
+    /// settings invites exactly the over-reading that got the percentage
+    /// removed. But it can't be #if DEBUG either, because the only way to
+    /// run this app on an iOS 27 beta device is a release build through
+    /// TestFlight — so calibration would be impossible without it.
+    @AppStorage("developerReadoutEnabled") private var developerReadoutEnabled = false
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
@@ -62,12 +75,30 @@ struct SettingsView: View {
                 // can't drift out of date. Worth including because it's the
                 // first thing you'll want to know from a bug report.
                 Text("Cairn Skin \(appVersion) (\(buildNumber))")
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        versionTapCount += 1
+                        if versionTapCount >= 5 {
+                            versionTapCount = 0
+                            developerReadoutEnabled.toggle()
+                        }
+                    }
             }
 
             Section {
                 EmptyView()
             } footer: {
                 Text("Cairn Skin helps you visually compare photos over time. It does not diagnose, screen for, or provide medical judgment about any condition. Always consult a healthcare provider with medical concerns.")
+            }
+
+            if developerReadoutEnabled {
+                Section {
+                    Toggle("Show comparison distance", isOn: $developerReadoutEnabled)
+                } header: {
+                    Text("Developer")
+                } footer: {
+                    Text("Raw feature-print distance on the compare screen. Reference points: ~0.20 same photo conditions, ~0.45 framing or lighting differs, ~0.85 likely a different subject. Turn off to hide this section.")
+                }
             }
 
             // Development only — stripped from release builds entirely.

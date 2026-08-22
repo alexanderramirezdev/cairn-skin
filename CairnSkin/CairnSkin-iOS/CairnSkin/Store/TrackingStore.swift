@@ -42,6 +42,7 @@ final class TrackingStore {
     init() {
         load()
         migrateLegacyEntriesIfNeeded()
+        migrateVectorsIfNeeded()
     }
 
     // MARK: - Areas
@@ -251,6 +252,39 @@ final class TrackingStore {
 
         areas.sort { $0.createdDate < $1.createdDate }
         saveAreas()
+    }
+
+    /// Recomputes stored feature prints when the extraction pipeline has
+    /// changed since they were written.
+    ///
+    /// Vectors are archived at capture time, so changing the crop (or any
+    /// other part of extraction) silently invalidates every vector already
+    /// on disk. Without this, a baseline captured before an update and a
+    /// photo captured after it describe different regions, and the
+    /// similarity between them is noise presented as a measurement.
+    ///
+    /// The original photos are still stored, so this just re-runs Vision
+    /// over them. It happens off the main thread and only when the
+    /// generation actually changed, so it costs nothing on a normal launch.
+    private func migrateVectorsIfNeeded() {
+        let key = "featurePrintGeneration"
+        let stored = UserDefaults.standard.integer(forKey: key)
+        let current = FeatureExtractor.extractionGeneration
+        guard stored != current else { return }
+
+        let entriesSnapshot = entries
+        let archive = self.archive
+
+        Task.detached(priority: .utility) {
+            for entry in entriesSnapshot {
+                guard let image = archive.image(for: entry) else { continue }
+                guard let observation = try? FeatureExtractor.extract(from: image) else { continue }
+                try? archive.writeVector(observation, entry: entry)
+            }
+            await MainActor.run {
+                UserDefaults.standard.set(current, forKey: key)
+            }
+        }
     }
 
     private func saveEntries() {

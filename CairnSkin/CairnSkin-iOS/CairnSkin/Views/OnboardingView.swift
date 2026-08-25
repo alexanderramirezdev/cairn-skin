@@ -55,7 +55,7 @@ struct OnboardingView: View {
                     OnboardingPage(
                         icon: { AnyView(CairnMark(size: 80)) },
                         title: "Track a spot over time",
-                        message: "Pick a place on your body — a patch of skin, a healing scar — and photograph it whenever you like. Cairn Skin keeps every photo organized in its own timeline."
+                        message: "Pick a place on your body, a patch of skin or a healing scar, and photograph it whenever you like. Cairn Skin keeps every photo organized in its own timeline."
                     )
                     .tag(0)
 
@@ -66,8 +66,8 @@ struct OnboardingView: View {
                                 .foregroundStyle(Color(red: 0.52, green: 0.84, blue: 0.84))
                                 .accessibilityHidden(true)
                         )},
-                        title: "Guided photos, honest comparisons",
-                        message: "Your previous photo appears faintly over the camera so you can line up the same framing. Each new photo is compared to your first one, so you can see how much things have changed — the app never judges whether a change is good or bad."
+                        title: "Photos worth comparing",
+                        message: "Your previous photo appears faintly over the camera so you can line up the same shot. Photos taken weeks apart are usually hard to compare, and matching the framing is what makes them worth putting side by side."
                     )
                     .tag(1)
 
@@ -79,7 +79,7 @@ struct OnboardingView: View {
                                 .accessibilityHidden(true)
                         )},
                         title: "Private by design",
-                        message: "Photos never leave your iPhone. There's no account, no cloud, and nothing is sent anywhere. Face ID protects your photos automatically once you've saved your first one.\n\nCairn Skin is a wellness journal, not a medical tool — for any health concern, see a healthcare provider."
+                        message: "Photos never leave your iPhone. There's no account, no cloud, and nothing is sent anywhere. Face ID protects your photos automatically once you've saved your first one.\n\nCairn Skin is a wellness journal, not a medical tool. It doesn't diagnose anything, and for any health concern you should see a healthcare provider."
                     )
                     .tag(2)
                 }

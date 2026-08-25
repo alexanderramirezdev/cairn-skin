@@ -107,19 +107,19 @@ struct CompareView: View {
         }
     }
 
-    /// One-line note with an icon, used for both the framing caveat and
-    /// the all-clear.
-    private func resultNote(icon: String, tint: Color, text: String) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .foregroundStyle(tint)
-                .accessibilityHidden(true)
-            Text(text)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(.horizontal, 4)
+    /// Short note about whether the two photos are fair to compare.
+    ///
+    /// Deliberately no icon. A small glyph beside a paragraph reads as a
+    /// badge on a warning, which is more alarm than this deserves — it's a
+    /// note about photography, not about the user's body. Centred text
+    /// matches the rest of the card and the wording carries the meaning.
+    private func resultNote(_ text: String, prominent: Bool) -> some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundStyle(prominent ? Color.primary : Color.secondary)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 8)
     }
 
     @ViewBuilder
@@ -138,33 +138,30 @@ struct CompareView: View {
             } else if rawDistance != nil {
                 // NO PERCENTAGE.
                 //
-                // The distance is still computed, and it's reliable enough
-                // to say "these two photographs differ a lot." It is not
+                // The distance is still computed and is reliable enough to
+                // say "these two photographs differ a lot." It is not
                 // reliable enough to put a number on: lighting and backdrop
                 // move it as much as the subject does. A tester's healing
                 // scratch scored 43%, then 45%, then 22% across three
-                // photos while visibly getting better — the pictures told
-                // the truth and the figure argued with them, and a number
-                // on screen always wins that argument.
+                // photos while visibly improving — the pictures told the
+                // truth and the figure argued with them, and a number on
+                // screen always wins that argument.
                 //
-                // So the measurement stays, but it only decides which of
-                // the notes below to show. The photographs above are the
-                // comparison.
+                // So the measurement stays, but only to decide which note
+                // appears. The photographs above are the comparison.
                 if let rawDistance, FeatureExtractor.framingLooksInconsistent(distance: rawDistance) {
                     resultNote(
-                        icon: "viewfinder",
-                        tint: .orange,
-                        text: "These photos differ in more than the area itself. Lighting, distance, angle, and background all change how a photo looks, so match the conditions of your first photo before reading this as a real change."
+                        "Lighting, distance, or background changed between these two photos. Match how you took the first one to compare them fairly.",
+                        prominent: true
                     )
                 } else {
-                    // Worth saying explicitly. It confirms the guided
-                    // capture did its job, which is the behaviour the app
-                    // wants to encourage, and it tells the user the two
-                    // pictures are fair to compare by eye.
+                    // Worth saying explicitly: it confirms the guided
+                    // capture did its job, which is the behaviour to
+                    // encourage, and tells the user the pair is honest to
+                    // judge by eye.
                     resultNote(
-                        icon: "checkmark.circle",
-                        tint: .green,
-                        text: "These photos were taken under similar conditions, so they're fair to compare side by side."
+                        "Taken under similar conditions, so these are fair to compare side by side.",
+                        prominent: false
                     )
                 }
             } else if let comparisonError {
@@ -175,20 +172,6 @@ struct CompareView: View {
                 ProgressView()
             }
 
-            // Raw distance readout — DEBUG builds only. It's a calibration
-            // tool, not a feature: the number means nothing without the
-            // reference measurements to compare it against, and showing it
-            // invites people to over-read a figure the percentage already
-            // expresses.
-            #if DEBUG
-            if let rawDistance {
-                Text(String(format: "distance: %.4f", rawDistance))
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 2)
-            }
-            #endif
-
             // Kept even though no figure is shown now: the screen still
             // invites a judgement about a body, and this is the line that
             // says the app isn't making one.
@@ -197,6 +180,21 @@ struct CompareView: View {
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.top, 4)
+
+            // Calibration readout. Off unless deliberately enabled (five
+            // taps on the version line in Settings), and placed last, in
+            // the faintest style available, so it reads as the development
+            // artifact it is rather than as something the app is saying.
+            if developerReadoutEnabled, let rawDistance {
+                Text(String(format: "%.4f  ref %.2f / %.2f / %.2f",
+                            rawDistance,
+                            FeatureExtractor.noiseFloor,
+                            FeatureExtractor.framingConcernThreshold,
+                            FeatureExtractor.notComparableThreshold))
+                    .font(.caption2.monospaced())
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 10)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(24)

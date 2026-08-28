@@ -49,10 +49,54 @@ nonisolated final class PhotoArchive: @unchecked Sendable {
     // wouldn't, and would also need its own locking.
     private let thumbnailCache = NSCache<NSString, UIImage>()
 
+    /// Every write in this type uses this.
+    ///
+    /// Without it, files land in the default class,
+    /// `.completeUntilFirstUserAuthentication` — readable at the
+    /// filesystem level from the first unlock after a reboot until the
+    /// device powers off, including the whole time the phone sits locked
+    /// in someone's pocket. The Face ID gate in the UI does nothing about
+    /// that; it only controls what this app draws on screen.
+    ///
+    /// `.complete` keys the files to the passcode, so they are genuinely
+    /// unreadable while the device is locked. That makes the lock screen a
+    /// real protection rather than a curtain.
+    ///
+    /// SAFE HERE because every read and write happens while the user is
+    /// actively in the app, which means the device is unlocked. The one
+    /// background task in the app (vector migration) handles failure and
+    /// retries on a later launch.
+    static let writeOptions: Data.WritingOptions = [.atomic, .completeFileProtection]
+
     init() {
-        try? FileManager.default.createDirectory(at: photosURL, withIntermediateDirectories: true)
-        try? FileManager.default.createDirectory(at: thumbnailsURL, withIntermediateDirectories: true)
-        try? FileManager.default.createDirectory(at: vectorsURL, withIntermediateDirectories: true)
+        for url in [photosURL, thumbnailsURL, vectorsURL] {
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            // Directories carry a protection class too, and it's what new
+            // files inherit by default.
+            try? FileManager.default.setAttributes(
+                [.protectionKey: FileProtectionType.complete],
+                ofItemAtPath: url.path
+            )
+        }
+    }
+
+    /// Marks (or unmarks) the photo, thumbnail, and vector directories as
+    /// excluded from iCloud and Finder backups.
+    ///
+    /// Excluding a directory covers everything inside it, including files
+    /// written later, so this only needs applying to the three folders.
+    ///
+    /// NOT the default. See the note on TrackingStore.applyBackupPreference
+    /// for why: excluding backups means a new phone restores an empty app,
+    /// which for a longitudinal photo record is the worst outcome the app
+    /// has.
+    func setBackupExclusion(_ excluded: Bool) {
+        for url in [photosURL, thumbnailsURL, vectorsURL] {
+            var target = url
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = excluded
+            try? target.setResourceValues(values)
+        }
     }
 
     // MARK: - Reading
@@ -79,7 +123,7 @@ nonisolated final class PhotoArchive: @unchecked Sendable {
         guard let full = image(for: entry),
               let thumb = Self.makeThumbnail(from: full) else { return nil }
         if let data = thumb.jpegData(compressionQuality: 0.8) {
-            try? data.write(to: thumbPath)
+            try? data.write(to: thumbPath, options: Self.writeOptions)
         }
         thumbnailCache.setObject(thumb, forKey: key)
         return thumb
@@ -107,17 +151,20 @@ nonisolated final class PhotoArchive: @unchecked Sendable {
         guard let jpegData = image.jpegData(compressionQuality: 0.85) else {
             throw FeatureExtractionError.couldNotCreateCGImage
         }
-        try jpegData.write(to: photosURL.appendingPathComponent(entry.imageFileName))
+        try jpegData.write(to: photosURL.appendingPathComponent(entry.imageFileName),
+                           options: Self.writeOptions)
 
         if let thumb = Self.makeThumbnail(from: image),
            let thumbData = thumb.jpegData(compressionQuality: 0.8) {
-            try? thumbData.write(to: thumbnailsURL.appendingPathComponent(entry.imageFileName))
+            try? thumbData.write(to: thumbnailsURL.appendingPathComponent(entry.imageFileName),
+                                 options: Self.writeOptions)
         }
     }
 
     func writeVector(_ observation: VNFeaturePrintObservation, entry: TrackingEntry) throws {
         let data = try NSKeyedArchiver.archivedData(withRootObject: observation, requiringSecureCoding: true)
-        try data.write(to: vectorsURL.appendingPathComponent(entry.vectorFileName))
+        try data.write(to: vectorsURL.appendingPathComponent(entry.vectorFileName),
+                       options: Self.writeOptions)
     }
 
     func deleteFiles(for entry: TrackingEntry) {

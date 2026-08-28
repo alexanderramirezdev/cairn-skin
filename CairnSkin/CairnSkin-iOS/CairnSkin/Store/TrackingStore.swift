@@ -39,8 +39,12 @@ final class TrackingStore {
     private var indexFileURL: URL { documentsURL.appendingPathComponent("entries.json") }
     private var areasFileURL: URL { documentsURL.appendingPathComponent("areas.json") }
 
+    /// UserDefaults key for the backup preference, shared with SettingsView.
+    static let excludeFromBackupKey = "excludeFromBackup"
+
     init() {
         load()
+        applyBackupPreference()
         migrateLegacyEntriesIfNeeded()
         migrateVectorsIfNeeded()
     }
@@ -254,6 +258,34 @@ final class TrackingStore {
         saveAreas()
     }
 
+    /// Applies the user's iCloud backup preference to every file the app
+    /// owns.
+    ///
+    /// DEFAULTS TO INCLUDED, which is deliberate and worth explaining.
+    ///
+    /// Excluding app data from backups is the stronger privacy position,
+    /// and for many apps it would be the obvious choice. It isn't here.
+    /// This app's entire value is a photo record built up over months —
+    /// the whole point of a baseline is that it's old. If those files are
+    /// excluded from backup, restoring to a new phone silently produces an
+    /// empty app, and every photo the user took is gone with no way to get
+    /// them back. For someone who has been photographing a mole for two
+    /// years, that is a far worse outcome than their encrypted iCloud
+    /// backup containing those photos.
+    ///
+    /// So it's offered as a choice rather than imposed, and the Settings
+    /// copy states the consequence plainly.
+    func applyBackupPreference() {
+        let excluded = UserDefaults.standard.bool(forKey: Self.excludeFromBackupKey)
+        archive.setBackupExclusion(excluded)
+        for url in [indexFileURL, areasFileURL] {
+            var target = url
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = excluded
+            try? target.setResourceValues(values)
+        }
+    }
+
     /// Recomputes stored feature prints when the extraction pipeline has
     /// changed since they were written.
     ///
@@ -289,7 +321,12 @@ final class TrackingStore {
 
     private func saveEntries() {
         do {
-            try JSONEncoder().encode(entries).write(to: indexFileURL)
+            // Same protection as the photos. These files hold area names
+            // and notes — "After sun exposure", "left forearm" — which is
+            // arguably the most revealing text in the app, and they were
+            // writing with no options at all while the images beside them
+            // were fully protected.
+            try JSONEncoder().encode(entries).write(to: indexFileURL, options: PhotoArchive.writeOptions)
         } catch {
             print("TrackingStore saveEntries failed: \(error)")
         }
@@ -297,7 +334,7 @@ final class TrackingStore {
 
     private func saveAreas() {
         do {
-            try JSONEncoder().encode(areas).write(to: areasFileURL)
+            try JSONEncoder().encode(areas).write(to: areasFileURL, options: PhotoArchive.writeOptions)
         } catch {
             print("TrackingStore saveAreas failed: \(error)")
         }

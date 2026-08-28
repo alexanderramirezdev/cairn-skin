@@ -15,6 +15,7 @@ struct SettingsView: View {
 
     @State private var confirmingDeleteAll = false
     @State private var versionTapCount = 0
+    @AppStorage(TrackingStore.excludeFromBackupKey) private var excludeFromBackup = false
 
     /// Reveals the raw comparison distance on the compare screen.
     ///
@@ -48,8 +49,21 @@ struct SettingsView: View {
                 } header: {
                     Text("Privacy")
                 } footer: {
-                    Text("On by default. \(appLock.biometryName) is asked for before your photos are shown, starting once you've saved your first photo. Your photos never leave this device, and there's no account or password — this lock is handled entirely by iOS.")
+                    Text("On by default. \(appLock.biometryName) is asked for before your photos are shown, starting once you've saved your first photo. There's no account and no password: the lock is handled entirely by iOS, and your photos are stored encrypted so they can't be read while the phone is locked.")
                 }
+            }
+
+            Section {
+                Toggle("Keep out of iCloud backups", isOn: $excludeFromBackup)
+                    .onChange(of: excludeFromBackup) { _, _ in
+                        store.applyBackupPreference()
+                    }
+            } header: {
+                Text("Backups")
+            } footer: {
+                Text(excludeFromBackup
+                     ? "Your photos are excluded from iCloud and computer backups. If you restore this phone or move to a new one, they will not come back — there is no other copy."
+                     : "Cairn Skin has no account and no server, so nothing is uploaded by the app itself. If you use iCloud Backup, your photos are included in that encrypted backup like other app data. Turn this on to leave them out, but they then can't be restored to a new phone.")
             }
 
             Section {

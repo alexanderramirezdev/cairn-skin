@@ -79,7 +79,7 @@ struct OnboardingView: View {
                                 .accessibilityHidden(true)
                         )},
                         title: "Private by design",
-                        message: "Photos never leave your iPhone. There's no account, no cloud, and nothing is sent anywhere. Face ID protects your photos automatically once you've saved your first one.\n\nCairn Skin is a wellness journal, not a medical tool. It doesn't diagnose anything, and for any health concern you should see a healthcare provider."
+                        message: "There's no account and no server. Nothing you photograph is uploaded, and your photos are stored encrypted so they can't be read while your phone is locked. Face ID protects them automatically once you've saved your first one.\n\nCairn Skin is a wellness journal, not a medical tool. It doesn't diagnose anything, and for any health concern you should see a healthcare provider."
                     )
                     .tag(2)
                 }

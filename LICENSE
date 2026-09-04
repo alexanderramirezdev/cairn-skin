@@ -1,9 +1,41 @@
-Copyright (c) 2026 Ramirez Labs. All rights reserved.
+Copyright (c) 2026 Alexander Ramirez (Ramirez Labs). All rights reserved.
 
-This source code is published for reference and portfolio purposes.
+This source code is made publicly available for the purposes of reading,
+evaluation, education, and reference — for example, by prospective employers,
+collaborators, and other developers who wish to study how the application is
+built.
 
-No permission is granted to copy, modify, merge, publish, distribute,
-sublicense, or sell copies of this software, in whole or in part,
-except with prior written permission from the copyright holder.
+Permission is granted to view and clone this repository, and to compile and run
+the application locally for the sole purpose of evaluating this source code.
 
-Reading the code, and learning from it, is welcome.
+No other rights are granted. Without prior written permission from the copyright
+holder, you may not:
+
+  1. Redistribute this source code or any substantial portion of it, whether
+     modified or unmodified;
+  2. Use this source code, in whole or in part, in any application, product, or
+     service, whether commercial or non-commercial;
+  3. Distribute or publish any application derived from or substantially based
+     on this source code, including to any application marketplace;
+  4. Use the names "Cairn Skin", "CairnSkin", or "Ramirez Labs", or any
+     associated marks, logos, or app icons, in connection with any derivative
+     work or any other product or service.
+
+The vision algorithms, feature extraction pipelines, application icons, and other
+visual assets included in this repository are likewise all rights reserved and
+are not licensed for reuse.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT
+HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT, OR OTHERWISE, ARISING FROM, OUT OF, OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Cairn Skin is a photographic wellness logging tool, not a diagnostic medical
+device. It does not screen for, detect, diagnose, or monitor melanoma, skin
+cancer, infections, or any dermatological or medical conditions. The visual
+similarity score is an on-device mathematical comparison of image feature prints
+under varying photographic conditions, not a clinical assessment. Always consult a
+board-certified dermatologist or qualified healthcare provider regarding any
+skin lesions, changes, or health concerns.

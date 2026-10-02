@@ -308,13 +308,38 @@ final class TrackingStore {
         let archive = self.archive
 
         Task.detached(priority: .utility) {
+            // Track success rather than assuming it. Complete file
+            // protection means reads fail if the phone locks part-way
+            // through, and the original version of this marked the
+            // migration finished regardless — leaving those entries on
+            // stale vectors permanently, which is the exact problem this
+            // exists to prevent.
+            //
+            // Marking complete only on a clean full pass means an
+            // interrupted run simply happens again next launch. Redoing
+            // work is cheap; silently keeping bad vectors is not.
+            var allSucceeded = true
+
             for entry in entriesSnapshot {
-                guard let image = archive.image(for: entry) else { continue }
-                guard let observation = try? FeatureExtractor.extract(from: image) else { continue }
-                try? archive.writeVector(observation, entry: entry)
+                guard let image = archive.image(for: entry) else {
+                    allSucceeded = false
+                    continue
+                }
+                guard let observation = try? FeatureExtractor.extract(from: image) else {
+                    allSucceeded = false
+                    continue
+                }
+                do {
+                    try archive.writeVector(observation, entry: entry)
+                } catch {
+                    allSucceeded = false
+                }
             }
-            await MainActor.run {
-                UserDefaults.standard.set(current, forKey: key)
+
+            if allSucceeded {
+                await MainActor.run {
+                    UserDefaults.standard.set(current, forKey: key)
+                }
             }
         }
     }

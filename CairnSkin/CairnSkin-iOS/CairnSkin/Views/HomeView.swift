@@ -13,6 +13,8 @@ import SwiftUI
 struct HomeView: View {
     @Environment(TrackingStore.self) private var store
     @State private var showingNewArea = false
+    @State private var showingPaywall = false
+    @Environment(PurchaseManager.self) private var purchases
 
     /// Set when a new area is created, which pushes straight into its
     /// timeline with the camera opening automatically.
@@ -63,7 +65,15 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
-                        showingNewArea = true
+                        // Gate on the free area limit. Someone at the
+                        // limit sees the paywall instead of the form —
+                        // showing the form and then refusing at Save would
+                        // waste their time and feel like a trick.
+                        if purchases.canAddArea(currentCount: store.areas.count) {
+                            showingNewArea = true
+                        } else {
+                            showingPaywall = true
+                        }
                     } label: {
                         Label("Add Area", systemImage: "plus")
                     }
@@ -74,6 +84,14 @@ struct HomeView: View {
                     } label: {
                         Label("Settings", systemImage: "gearshape")
                     }
+                }
+            }
+            .sheet(isPresented: $showingPaywall) {
+                PaywallView {
+                    // Purchase succeeded, so continue straight into what
+                    // they were trying to do rather than making them tap
+                    // the plus again.
+                    showingNewArea = true
                 }
             }
             .sheet(isPresented: $showingNewArea) {

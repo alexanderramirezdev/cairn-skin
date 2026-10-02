@@ -60,6 +60,28 @@ struct TrackingArea: Codable, Identifiable, Equatable, Hashable {
         self.createdDate = createdDate
     }
 
-    // Both new properties have defaults, so areas saved before they
-    // existed still decode cleanly — no migration needed.
+    // MARK: - Codable
+    //
+    // A default value on a stored property (like "= 0" above) only tells
+    // the COMPILER what to use for new instances. It does NOT make the
+    // synthesized decoder tolerate that key being absent from saved JSON:
+    // it still calls decode(), not decodeIfPresent(), and throws.
+    //
+    // That is exactly what emptied testers' apps in August: these two
+    // fields were added after people already had areas.json on disk, the
+    // decode threw, and TrackingStore's "try? ... ?? []" turned the
+    // failure into an empty list.
+    //
+    // RULE: any stored property added to a type with shipped saved data
+    // needs decodeIfPresent with a fallback here. A plain "= default" is
+    // not enough. PersistenceCompatibilityTests fails if this regresses.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        category = try container.decode(TrackingCategory.self, forKey: .category)
+        createdDate = try container.decode(Date.self, forKey: .createdDate)
+        reminderIntervalDays = try container.decodeIfPresent(Int.self, forKey: .reminderIntervalDays) ?? 0
+        usesFrontCamera = try container.decodeIfPresent(Bool.self, forKey: .usesFrontCamera) ?? false
+    }
 }

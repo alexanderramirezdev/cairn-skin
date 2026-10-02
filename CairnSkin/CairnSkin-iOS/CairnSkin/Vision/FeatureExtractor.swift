@@ -34,6 +34,7 @@
 
 import Vision
 import UIKit
+import CoreML
 
 // Errors this class can produce. Swift's "Error" protocol is like
 // implementing Exception in C# — anything conforming can be thrown.
@@ -196,6 +197,26 @@ nonisolated enum FeatureExtractor {
         // Pinning revision 2 (iOS 17+) keeps every stored vector in
         // this app comparable with every other, permanently.
         request.revision = VNGenerateImageFeaturePrintRequestRevision2
+
+        // SIMULATOR ONLY: run on the CPU.
+        //
+        // The simulator has no Neural Engine and no usable GPU for Vision's
+        // model, so it fails with "Failed to create espresso context" (the
+        // engine Vision runs its network on). That made every unit test
+        // that calls extract() fail on the simulator, which is the only
+        // place tests can run while devices are on an iOS beta.
+        //
+        // Compiled out entirely on real devices, so shipping builds keep
+        // using the Neural Engine exactly as before.
+        #if targetEnvironment(simulator)
+        let cpu = MLComputeDevice.allComputeDevices.first {
+            if case .cpu = $0 { return true }
+            return false
+        }
+        if let cpu {
+            request.setComputeDevice(cpu, for: .main)
+        }
+        #endif
 
         // The handler actually RUNS the request against our image.
         // This happens synchronously and entirely on-device.

@@ -17,6 +17,7 @@ struct CairnSkinApp: App {
     // its extracted vector + metadata) lives here. A single source of
     // truth, injected down to every screen via .environment().
     @State private var store = TrackingStore()
+    @State private var purchases = PurchaseManager()
     @State private var appLock = AppLock()
 
     // Persisted across launches — the onboarding shows exactly once.
@@ -65,6 +66,7 @@ struct CairnSkinApp: App {
                 }
             }
             .environment(store)
+                .environment(purchases)
             .environment(appLock)
             // ".task(id:)" rather than ".task" — this is the fix for a
             // stuck lock screen.
@@ -80,16 +82,24 @@ struct CairnSkinApp: App {
             // .task(id:) runs on first appearance AND again every time
             // the id changes, so cold launch and return-from-background
             // both funnel through one path.
+            .task {
+                // Load the product and verify entitlements once at launch,
+                // so the paywall has a price ready and someone who already
+                // paid never briefly sees a locked state.
+                await purchases.load()
+            }
             .task(id: scenePhase) {
                 guard scenePhase == .active else { return }
+
+                // Re-verify entitlement on every foreground. A refund or a
+                // Family Sharing change can happen while the app is backgrounded,
+                // and cached state would otherwise keep granting access that the
+                // App Store has already revoked.
+                await purchases.refreshEntitlements()
 
                 if lockIsActive && !appLock.isUnlocked && !appLock.hasPromptedSinceLock {
                     await appLock.authenticate()
                 } else if !lockIsActive {
-                    // Nothing saved yet, so nothing to protect. Marking the
-                    // session unlocked here stops the first saved photo from
-                    // flipping lockIsActive mid-session and dropping a lock
-                    // screen on someone actively using the app.
                     appLock.isUnlocked = true
                 }
             }

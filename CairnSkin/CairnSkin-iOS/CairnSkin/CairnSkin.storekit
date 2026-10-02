@@ -1,0 +1,32 @@
+{
+  "identifier" : "CairnSkinStoreKit",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "cairnskin-unlimited",
+      "localizations" : [
+        {
+          "description" : "Track as many areas as you like, each with its own baseline and history.",
+          "displayName" : "Unlimited Areas",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.aramirez.CairnSkin.unlimited",
+      "referenceName" : "Unlimited Areas",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : []
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

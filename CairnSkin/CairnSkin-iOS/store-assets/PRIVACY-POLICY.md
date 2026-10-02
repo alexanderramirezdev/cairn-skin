@@ -1,6 +1,6 @@
 # Privacy Policy for Cairn Skin
 
-**Last updated: August 3, 2026**
+**Last updated: August 27, 2026**
 
 ## The short version
 
@@ -21,7 +21,7 @@ Everything below is saved only in the app's private storage area on your device:
 - **No servers.** Cairn Skin has no backend. Your data is never uploaded anywhere.
 - **No analytics or tracking.** No usage data, crash reporting, device identifiers, or advertising identifiers are collected.
 - **No third-party services.** No SDKs that collect data are included.
-- **No iCloud sync.** Your photos are not backed up to iCloud by the app itself.
+- **No iCloud sync.** Cairn Skin does not sync anything to iCloud or anywhere else.
 
 ## Permissions the app requests
 
@@ -36,6 +36,16 @@ Image comparison happens entirely on your device using Apple's Vision framework.
 ## Exporting a PDF
 
 Cairn Skin can generate a PDF of a tracking area on your device. The app does not send that file anywhere, after it is created, you choose what to do with it through the standard iOS share sheet. Once you share a PDF outside the app, this policy no longer governs it.
+
+## Device backups
+
+Cairn Skin never uploads your photos. However, if you use iCloud Backup or back your iPhone up to a computer, the app's data is included in that backup along with your other apps' data, in encrypted form. This is standard iOS behaviour and is controlled by you, not by this app.
+
+If you would rather your photos were left out of backups entirely, there is a setting for it (Settings, Backups, "Keep out of iCloud backups"). Note that photos excluded from backups cannot be restored if you replace or reset your phone.
+
+## File encryption
+
+Photos, notes, and comparison data are written with iOS complete file protection. In practice this means they are encrypted with a key tied to your passcode and are unreadable while your phone is locked, including by anyone with physical access to the device.
 
 ## Deleting your data
 
